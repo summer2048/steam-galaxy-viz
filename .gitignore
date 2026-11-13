@@ -1,0 +1,14 @@
+# local tooling
+.claude/
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# raw data and caches (rebuild with the pipeline in README)
+games.csv
+games.parquet
+*.pkl
+dash.json
+covers_cache/
+covers_raw/
