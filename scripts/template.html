@@ -502,7 +502,9 @@ body.panel-open #ui3{right:calc(75vw + 16px)}
 .banner.gamesel .hsel{background:#fff;color:#0d0d0d}
 .banner.gamesel .hcover img{box-shadow:0 0 0 2px #fff,0 10px 30px rgba(0,0,0,.55)}
 .smxh{font-size:11.5px;color:var(--muted);margin:0 0 6px}
-.smx{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.smx{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin:0 0 12px}
+.smx .sx{border:1px dashed rgba(255,255,255,.14);border-radius:10px;padding:8px 11px;color:var(--ink2)}
+.smx .sx .v{color:var(--ink2)}
 .smx button{font:inherit;text-align:left;color:var(--ink2);background:rgba(255,255,255,.04);border:1px solid transparent;border-radius:10px;padding:8px 11px;cursor:pointer;transition:background .2s,border-color .2s}
 .smx button:hover{background:rgba(255,255,255,.08)}
 .smx button[aria-pressed=true]{border-color:var(--sel);background:color-mix(in srgb,var(--sel) 16%,transparent);color:var(--ink)}
@@ -568,6 +570,7 @@ body.panel-open #ui3{right:calc(75vw + 16px)}
 #zoomUI .enc{font-size:12px;color:var(--ink2);background:rgba(13,13,13,.6);border-radius:8px;padding:5px 9px}
 #zoomUI .eo{display:inline-block;width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:6px;background:radial-gradient(circle,#c9a36b 45%,#3b2a1a 70%);box-shadow:0 0 0 2px var(--fam0)}
 body.panel-open #zoomUI .enc{display:none}
+body.tag-sel #zoomUI{opacity:0;pointer-events:none}
 body.panel-open #ui3 .hint0,body.panel-open #ui3 .acts{display:none}
 body.panel-open #ui3 .kicker{margin-bottom:0}
 .pA .gbar{flex-wrap:wrap;row-gap:4px}
@@ -597,6 +600,43 @@ body.panel-open #ui3 .kicker{margin-bottom:0}
 .grw.hot{background:rgba(255,255,255,.1)}
 .gnote{font-size:11.5px;color:var(--muted);margin:8px 0 0}
 @media (max-width:820px){.layout .right{width:auto;left:12px;right:12px;top:auto;bottom:0;height:62vh;border-radius:16px 16px 0 0}.layout.open .right{display:block}.pA{position:static}body.panel-open #langBtn{right:16px;bottom:calc(62vh + 10px)}body.panel-open #ui3{right:20px}#zoomUI .enc{display:none}}
+/* ---- data review (issues/001): intervals in small print, thin samples fade ---- */
+.ci{display:block;font-size:10.5px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.dt tr.thin td{opacity:.5}
+table.dt tr.thin:hover td{opacity:1}
+.right details.more{margin-top:10px}
+/* ---- v18 polish: nothing pops in or out, everything eases ---- */
+html{scrollbar-color:#3a3a38 #0d0d0d}
+.right,#sum,#tools.open > div{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
+.seg2 button,.gseg button,#zoomUI button,.fp-fams button,.fp-foot button,.wtags button,#closePanel,.crumb .x,.back-top,.controls button{transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .12s ease}
+.seg2 button:active,.gseg button:active,#zoomUI button:active,.fp-foot button:active,.ghost:active{transform:scale(.94)}
+/* tooltip and filter popover fade both ways instead of toggling display */
+#tip{display:block;opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .14s ease,transform .18s cubic-bezier(.16,1,.3,1),visibility 0s .14s}
+#tip.on{opacity:1;visibility:visible;transform:none;transition:opacity .14s ease,transform .18s cubic-bezier(.16,1,.3,1)}
+#fpop{display:block;visibility:hidden;opacity:0;transform:translateY(-8px) scale(.985);transform-origin:0 0;transition:opacity .2s ease,transform .28s cubic-bezier(.16,1,.3,1),visibility 0s .28s}
+#fpop.open{visibility:visible;opacity:1;transform:none;animation:none;transition:opacity .2s ease,transform .28s cubic-bezier(.16,1,.3,1)}
+/* the front cards step aside while a popover sits on top of them */
+.stage3:has(#fpop.open) #front,.stage3:has(#tools.open) #front{opacity:0}
+.stage3:has(#fpop.open) #front .fc,.stage3:has(#tools.open) #front .fc{pointer-events:none}
+/* the detail panel leaves the way it came in */
+.layout.closing:not(.open) .right{display:grid;pointer-events:none;animation:panelOut .24s cubic-bezier(.4,0,1,1) both}
+@keyframes panelOut{to{opacity:0;transform:translateX(24px)}}
+@media (max-width:820px){.layout.closing:not(.open) .right{display:block}}
+/* the language button changes corner with the panel: cross-fade instead of flying across the screen */
+#langBtn{transition:background .2s}
+body.panel-open #langBtn{animation:langA .4s .25s both}
+body:not(.panel-open) #langBtn{animation:langB .4s .1s both}
+@keyframes langA{from{opacity:0}}
+@keyframes langB{from{opacity:0}}
+/* returning visitors can skip the story; a hairline along the top shows how far through the page you are */
+#skip{position:absolute;top:14px;right:20px;z-index:2;font:inherit;font-size:12.5px;color:var(--ink2);background:rgba(26,26,25,.6);backdrop-filter:blur(8px);border:1px solid var(--card-border);border-radius:999px;padding:6px 13px;cursor:pointer;transition:color .18s ease,background-color .18s ease,border-color .18s ease}
+#skip:hover{color:var(--ink);background:rgba(60,60,58,.85);border-color:var(--axis)}
+@supports (animation-timeline:scroll()){
+  body::before{content:"";position:fixed;left:0;top:0;width:100%;height:2px;z-index:60;pointer-events:none;background:var(--accent);opacity:.75;transform-origin:0 50%;animation:pageProg linear both;animation-timeline:scroll(root)}
+  @keyframes pageProg{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+}
+/* a left column taller than the panel scrolls until its bottom edge arrives, then holds, so the column is never empty */
+.pA.flow{position:sticky;top:var(--pin,50px)}
 </style>
 </head>
 <body>
@@ -611,6 +651,7 @@ body.panel-open #ui3 .kicker{margin-bottom:0}
       <div class="beat" data-w=".52,.59,.7,.76"><p>它们长这样。</p></div>
       <div class="beat" data-w=".8,.86,.96,1.02"><p>它们来自不同的世界。</p></div>
       <div id="cue">向下滑动 ↓</div>
+      <button id="skip" type="button"></button>
     </div>
   </section>
   <section id="select" aria-label="选择世界">
@@ -653,7 +694,7 @@ body.panel-open #ui3 .kicker{margin-bottom:0}
   <div class="foot0">
   <details>
     <summary>表格视图：全部标签（点击表头排序，点击行选中）</summary>
-    <table><thead><tr><th data-k="name">标签</th><th data-k="fam">阵营</th><th data-k="n">游戏数</th><th data-k="hit">成功率</th><th data-k="score">中位好评率</th><th data-k="recent">2022 年后占比</th><th data-k="price">中位原价</th><th data-k="zh">支持中文</th></tr></thead><tbody id="tbody"></tbody></table>
+    <table><thead><tr><th data-k="name">标签</th><th data-k="fam">阵营</th><th data-k="n">游戏数</th><th data-k="hit_adj">成功率（和同年游戏比）</th><th data-k="hit">成功率（直接统计）</th><th data-k="score">中位好评率</th><th data-k="recent">2022 年后占比</th><th data-k="price">中位原价</th><th data-k="zh">支持中文</th></tr></thead><tbody id="tbody"></tbody></table>
   </details>
 
   <details>
@@ -662,10 +703,13 @@ body.panel-open #ui3 .kicker{margin-bottom:0}
     <li><b>数据</b>：FronkonGames/steam-games-dataset（CSV 版，约 2026 年 3 月快照）。<b>成功</b> = Steam 评价数 ≥ 500 条。</li>
     <li><b>分析范围</b>：2018–2024 年发行、至少有一个标签的游戏（<span id="uN"></span> 款）；同期另有 <span id="untag"></span> 的游戏没有任何标签，它们几乎都没有评价，所以没算进来。</li>
     <li><b>每年发行数</b>图里，"全部游戏"统计的是所有游戏（含无标签的）；单个标签只统计有该标签的游戏。2025 年发行的游戏还没来得及积累评价和标签，数字偏低。</li>
-    <li><b>三维星图</b>：横轴 = 游戏数（对数），纵轴 = 成功率（可在三种算法间切换），纵深 = 2022 年后发行的占比；球的大小 = 游戏数，球的外圈颜色 = 阵营。球面从该标签的代表作开始，按评价数加权随机轮换。成功的另两种算法把每款游戏的持有量取 SteamSpy 区间上限：持有量 ≥ 20 万，或 持有量 × 原价 ≥ $100 万（未扣平台分成和折扣，是上限估计）。</li>
+    <li id="noteAxis"></li>
+    <li id="noteAdj"></li>
     <li><b>焦点</b>：离视角最近的球保持清晰，越远越模糊、越暗；左侧卡片始终对应当前视角最前面的类别和它正在显示的游戏。</li>
     <li><b>星座连线</b>：选中标签后，连向它最常一起出现的标签（2018–2024，组合 ≥30 款，已排除 Indie 等泛标签）。线越粗 = 同时出现比例越高；线越亮 = 组合成功率越高；线的颜色从选中标签的阵营渐变到对方阵营。<b>成就徽章</b>按固定阈值自动判定，悬停可看依据。</li>
     <li><b>结果型标签</b>（如 Great Soundtrack、Classic）往往是游戏火了之后玩家才打上的，存在因果倒置，默认隐藏。热门游戏的标签更多，所以细分标签的成功率整体偏高：<b>看相对排序比看绝对值更可靠</b>。所有对比都只是相关，不代表因果。</li>
+    <li id="noteCI"></li>
+    <li id="noteLack"></li>
   </ul>
   </details>
   </div>
@@ -742,13 +786,14 @@ const NS = 'http://www.w3.org/2000/svg';
 const B = DATA.base, T = DATA.tags, L = DATA.labels;
 const CURATED = ['Online Co-Op','Open World Survival Craft','Turn-Based','Roguelike Deckbuilder','Colony Sim','Cozy','Wholesome','Narrative','City Builder','Casual','Arcade','2D Platformer','Linear','Puzzle','Pixel Graphics'];
 const RECENT_BINS = [0.4, 0.5, 0.6, 0.7];  // 2022+ share thresholds -> seq0..seq4
-const state = { locked: null, preview: null, showOutcome: false, sortK: 'hit', sortDir: -1, tab: null, gm: 'r', lens: null, lensPreview: null, pins: {}, pendingTag: null, lockAt: 0, tools: false, panelAll: false, bossOpen: false, achAll: false, sm: 'r', group: null, groupPreview: null, game: null, flt: { fams: new Set(), s: 0, r: 60, n: 20 }, fltOpen: false };
-// Three ways to count a hit. Owner counts take the top of each game's SteamSpy band, so the last two are upper-bound estimates.
+const state = { locked: null, preview: null, showOutcome: false, sortK: 'hit_adj', sortDir: -1, tab: null, gm: 'r', lens: null, lensPreview: null, pins: {}, pendingTag: null, lockAt: 0, tools: false, panelAll: false, bossOpen: false, achAll: false, sm: 'a', group: null, groupPreview: null, game: null, flt: { fams: new Set(), s: 0, r: 60, n: 20 }, fltOpen: false };
+// One rule (≥500 reviews), read two ways. A 2018 game has had seven years to get there and a 2024 game barely one,
+// so the default reading compares every tag with what its own mix of release years predicts (see scripts/derive.py).
 const SM = [
-  { k: 'r', f: d => d.hit, t: tx('评价 ≥ 500', 'Reviews ≥ 500'), s: tx('至少 500 条 Steam 评价', 'At least 500 Steam reviews') },
-  { k: 'o', f: d => d.hit_o, t: tx('持有量 ≥ 20 万', 'Owners ≥ 200k'), s: tx('SteamSpy 持有量区间上限 ≥ 20 万', 'Top of the SteamSpy owner band ≥ 200k') },
-  { k: 'g', f: d => d.hit_g, t: tx('流水 ≥ $100 万', 'Gross ≥ $1M'), s: tx('持有量上限 × 原价 ≥ $100 万（未扣分成与折扣，是上限估计）', "Owner upper bound × list price ≥ $1M (before Steam's cut and discounts, an upper bound)") },
+  { k: 'a', f: d => d.hit_adj ?? d.hit, t: tx('和同年游戏比', 'vs. same-year games'), s: tx('老游戏攒评价的时间更长。这里每款游戏只和同一年发行的游戏比，新老标签才能放在一起看', 'Older games have had longer to collect reviews. Here each game is judged against games released the same year, so new and old tags can be compared') },
+  { k: 'r', f: d => d.hit, t: tx('直接统计', 'Simple count'), s: tx('拿到 500 条评价的游戏占比，新老游戏混在一起算，新作多的标签会吃亏', 'Share of games that reached 500 reviews, old and new counted together; tags full of recent games lose out') },
 ];
+const adj = d => d.hit_adj ?? d.hit;   // what "success rate" means wherever tags are ranked or compared with each other
 const smOf = k => SM.find(m => m.k === k), succ = (d, k = state.sm) => smOf(k).f(d) ?? 0;
 // Niche to mainstream: tags grouped by how many games carry them.
 const GROUPS = [
@@ -837,8 +882,8 @@ function texture(key, hex) {
 const median = a => { const s = a.filter(v => v != null).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
 function factionStats(key) {
   const ts = visibleTags().filter(t => famOf(t).key === key);
-  const best = ts.slice().sort((a, b) => T[b].hit - T[a].hit)[0], big = ts.slice().sort((a, b) => T[b].n - T[a].n)[0];
-  return { n: ts.length, hit: median(ts.map(t => T[t].hit)), recent: median(ts.map(t => T[t].recent)), best, big, tags: ts };
+  const best = ts.slice().sort((a, b) => adj(T[b]) - adj(T[a]))[0], big = ts.slice().sort((a, b) => T[b].n - T[a].n)[0];
+  return { n: ts.length, hit: median(ts.map(t => adj(T[t]))), recent: median(ts.map(t => T[t].recent)), best, big, tags: ts };
 }
 function factionRank(key) {
   const order = FACTIONS.filter(f => f.slot >= 0).map(f => ({ k: f.key, h: factionStats(f.key).hit })).sort((a, b) => b.h - a.h);
@@ -911,7 +956,7 @@ function niceMax(v) { const s = [0.05,0.1,0.2,0.25,0.3,0.4,0.5,0.6,0.8,1]; retur
 
 // ---------- tooltip ----------
 const tip = document.getElementById('tip');
-function showTip(ev, html) { tip.innerHTML = html; tip.style.display = 'block'; moveTip(ev); }
+function showTip(ev, html) { tip.innerHTML = html; tip.classList.add('on'); moveTip(ev); }
 function moveTip(ev) {
   const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
   let x = ev.clientX + pad, y = ev.clientY + pad;
@@ -919,14 +964,14 @@ function moveTip(ev) {
   if (y + h > innerHeight - 8) y = ev.clientY - h - pad;
   tip.style.left = x + 'px'; tip.style.top = y + 'px';
 }
-function hideTip() { tip.style.display = 'none'; }
+function hideTip() { tip.classList.remove('on'); }
 const row = (k, v) => `<div class="r"><span>${k}</span><span>${v}</span></div>`;
 
 // ---------- main scatter ----------
 const visibleTags = () => Object.keys(T).filter(t => state.showOutcome || !T[t].outcome);
 function tagTip(t) {
   const d = T[t];
-  return `<b>${esc(t)}</b>${row(w('成功率'), pct(d.hit, 1))}${note(w('点击查看'))}`;
+  return `<b>${esc(t)}</b>${row(w('成功率'), pct(adj(d), 1))}${note(w('点击查看'))}`;
 }
 function mainLegend() {
   const lens = state.lensPreview || state.lens, host = document.getElementById('mainLegend');
@@ -943,7 +988,7 @@ function groupData(k) {
   // each game is credited to the most specific tag in the group that lists it
   tags.slice().sort((a, b) => T[a].n - T[b].n).forEach(t => T[t].games.forEach(g => { if (!seen.has(g.i)) seen.set(g.i, { ...g, src: t }); }));
   const games = [...seen.values()].sort((a, b) => b.r - a.r).slice(0, 60);
-  return gCache[key] = { tags, n: med(d => d.n), hit: med(d => d.hit), hit_o: med(d => d.hit_o), hit_g: med(d => d.hit_g), score: med(d => d.score), recent: med(d => d.recent),
+  return gCache[key] = { tags, n: med(d => d.n), hit: med(d => d.hit), hit_adj: med(d => d.hit_adj), score: med(d => d.score), recent: med(d => d.recent),
     games, covers: [], gstat: { total: games.length, reviews: games.reduce((a, g) => a + g.r, 0) } };
 }
 function current() { const t = state.locked; return t ? { name: t, d: T[t] } : state.group ? { name: null, d: groupData(state.group), group: state.group } : { name: null, d: B }; }
@@ -1041,16 +1086,16 @@ function drawHBars(hostId, rows, fmtV = v => pct(v, 1)) {
 function drawLines(hostId, xs, series) {
   const host = document.getElementById(hostId), W = host.clientWidth, H = 200, m = { l: 44, r: 70, t: 12, b: 26 };
   const svg = el('svg', { width: W, height: H }, host);
-  const [max, tstep] = niceAxis(Math.max(0.001, ...series.flatMap(s => s.v)));
+  const [max, tstep] = niceAxis(Math.max(0.001, ...series.flatMap(s => s.v.filter(v => v != null))));
   const X = i => m.l + i / (xs.length - 1) * (W - m.l - m.r), Y = v => H - m.b - v / max * (H - m.t - m.b);
   yAxis(svg, m, W, Y, max, tstep, v => pct(v, tstep < 0.01 ? 1 : 0));
   xs.forEach((x, i) => { if (i % 2 === 0 || i === xs.length - 1) txt(svg, X(i), H - 8, x, { 'text-anchor': 'middle' }); });
   el('line', { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, class: 'axis' }, svg);
   const ends = [];
   series.forEach(s => {
-    el('path', { d: s.v.map((v, i) => `${i ? 'L' : 'M'}${X(i)},${Y(v)}`).join(''), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', ...(s.dash ? { 'stroke-dasharray': s.dash } : { class: 'ldraw', pathLength: 1 }) }, svg);
-    s.v.forEach((v, i) => el('circle', { cx: X(i), cy: Y(v), r: 4, fill: s.color, stroke: 'var(--surface)', 'stroke-width': 2, class: 'dotIn' }, svg));
-    ends.push({ y: Y(s.v[s.v.length - 1]), s });
+    el('path', { d: s.v.map((v, i) => v == null ? '' : `${i && s.v[i - 1] != null ? 'L' : 'M'}${X(i)},${Y(v)}`).join(''), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', ...(s.dash ? { 'stroke-dasharray': s.dash } : { class: 'ldraw', pathLength: 1 }) }, svg);
+    s.v.forEach((v, i) => { if (v != null) el('circle', { cx: X(i), cy: Y(v), r: 4, fill: s.color, stroke: 'var(--surface)', 'stroke-width': 2, class: 'dotIn' }, svg); });
+    const lastV = s.v.filter(v => v != null).pop(); if (lastV != null) ends.push({ y: Y(lastV), s });
   });
   ends.sort((a, b) => a.y - b.y);
   for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
@@ -1064,17 +1109,62 @@ function drawLines(hostId, xs, series) {
   });
 }
 
+// 95% Wilson interval for a rate seen in n games. Small cells get a wide one, and the tables fade them.
+const wilson = (p, n) => { if (p == null || !n) return null; const z = 1.96, a = p + z * z / (2 * n), b = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)), c = 1 + z * z / n; return [Math.max(0, (a - b) / c), Math.min(1, (a + b) / c)]; };
+const THIN_N = 100;
+const ciTxt = (p, n) => { const c = wilson(p, n); return c ? `<small class="ci" title="${tx(`95% 置信区间，n = ${fmt(n)}`, `95% interval, n = ${fmt(n)}`)}">${pct(c[0])}–${pct(c[1])}</small>` : ''; };
+
+// Growth quadrant: has a tag's share of releases grown, and did its share of hits keep up?
+// Both axes are shares within a year (2022–24 mean ÷ 2018–20 mean), so newer games' shorter runway cancels out.
+// Newer games also carry more tags, which lifts nearly every tag's share; each axis is therefore divided by the median tag.
+function drawQuad(hostId) {
+  const host = document.getElementById(hostId), { name } = current(), W = host.clientWidth, H = 320, m = { l: 46, r: 12, t: 12, b: 40 };
+  const svg = el('svg', { width: W, height: H }, host), lg = Math.log2;
+  const raw = visibleTags().map(t => ({ t, rx: T[t].grow.rel, ry: T[t].grow.hits })).filter(p => p.rx > 0 && p.ry > 0), mx = median(raw.map(p => p.rx)), my = median(raw.map(p => p.ry));
+  const pts = raw.map(p => ({ ...p, x: p.rx / mx, y: p.ry / my }));
+  const R = Math.max(1, Math.ceil(Math.max(...pts.flatMap(p => [Math.abs(lg(p.x)), Math.abs(lg(p.y))])) - .05));   // symmetric, in doublings
+  const k01 = v => clamp((lg(v) + R) / (2 * R)), X = v => m.l + k01(v) * (W - m.l - m.r), Y = v => H - m.b - k01(v) * (H - m.t - m.b);
+  const lab = k => k >= 0 ? 2 ** k + '×' : '1/' + 2 ** -k;
+  for (let k = -R; k <= R; k++) {
+    const v = 2 ** k;
+    el('line', { x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, class: k ? 'grid' : 'axis' }, svg); el('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: k ? 'grid' : 'axis' }, svg);
+    txt(svg, X(v), H - m.b + 14, lab(k), { 'text-anchor': 'middle' }); txt(svg, m.l - 6, Y(v) + 4, lab(k), { 'text-anchor': 'end' });
+  }
+  el('line', { x1: X(2 ** -R), y1: Y(2 ** -R), x2: X(2 ** R), y2: Y(2 ** R), stroke: 'var(--ink2)', 'stroke-dasharray': '4 4', opacity: .6 }, svg);
+  const corner = (x, y, anchor, s) => txt(svg, x, y, s, { 'text-anchor': anchor, 'font-size': 11, fill: 'var(--muted)' });
+  corner(W - m.r - 6, m.t + 14, 'end', tx('供给和成功都涨得比别人快', 'Supply and hits both outgrowing the rest'));
+  corner(W - m.r - 6, H - m.b - 8, 'end', tx('供给涌入，成功没跟上', 'Supply up, hits not keeping up'));
+  corner(m.l + 6, m.t + 14, 'start', tx('供给落后，成功份额领先', 'Supply behind, hit share ahead'));
+  corner(m.l + 6, H - m.b - 8, 'start', tx('都在落后', 'Both falling behind'));
+  txt(svg, (m.l + W - m.r) / 2, H - 6, tx('发行份额的变化，相对中位标签 →', 'Change in share of releases, relative to the median tag →'), { 'text-anchor': 'middle', fill: 'var(--ink2)' });
+  pts.sort((a, b) => (a.t === name) - (b.t === name)).forEach(p => {
+    const on = p.t === name, c = el('circle', { cx: X(p.x), cy: Y(p.y), r: on ? 7 : 4, fill: famColor(famOf(p.t)), opacity: name && !on ? .4 : .85, stroke: on ? 'var(--ink)' : 'none', 'stroke-width': 2, style: 'cursor:pointer' }, svg);
+    hover(c, `<b>${esc(p.t)}</b>${row(tx('发行份额 2022–24 ÷ 2018–20', 'Share of releases, 2022–24 ÷ 2018–20'), p.rx.toFixed(2) + '×')}${row(tx('成功作品份额，同上', 'Share of hits, same ratio'), p.ry.toFixed(2) + '×')}${row(tx('相对中位标签', 'Relative to the median tag'), p.x.toFixed(2) + '× / ' + p.y.toFixed(2) + '×')}${row(tx('成功率（和同年游戏比）', 'Success vs. same-year games'), pct(adj(T[p.t]), 1))}${note(on ? tx('当前选中', 'Selected') : w('点击查看'))}`);
+    if (!on) c.addEventListener('click', () => { hideTip(); lock(p.t); });
+    else txt(svg, X(p.x) + (k01(p.x) > .75 ? -11 : 11), Y(p.y) + 4, p.t, { 'text-anchor': k01(p.x) > .75 ? 'end' : 'start', class: 'lbl' });
+  });
+  const cap = document.getElementById(hostId + 'Cap');
+  if (name) {
+    const g = T[name].grow, x = g.rel, y = g.hits, k = x && y ? (y / my) / (x / mx) : null;
+    cap.innerHTML = k == null ? tx('这个标签在 2018–2020 年的数据太少，无法计算。', 'Too little data for this tag in 2018–2020.') :
+      tx(`<b>${esc(name)}</b>：发行份额是 2018–2020 年的 <b>${x.toFixed(1)} 倍</b>（中位标签 ${mx.toFixed(1)} 倍），成功作品份额是 <b>${y.toFixed(1)} 倍</b>（中位标签 ${my.toFixed(1)} 倍）。${k >= 1.1 ? '和其他标签相比，成功涨得比供给快。' : k <= .9 ? (x > mx ? '和其他标签相比，供给涨得比成功快，赛道在变挤。' : '和其他标签相比，成功份额掉得比供给快。') : '和其他标签相比，两者基本同步。'}`,
+         `<b>${esc(name)}</b>: its share of releases is <b>${x.toFixed(1)}×</b> what it was in 2018–2020 (median tag ${mx.toFixed(1)}×), its share of hits <b>${y.toFixed(1)}×</b> (median tag ${my.toFixed(1)}×). ${k >= 1.1 ? 'Against other tags, hits grew faster than supply.' : k <= .9 ? (x > mx ? 'Against other tags, supply grew faster than hits: the lane is getting crowded.' : 'Against other tags, its hit share fell faster than its supply.') : 'Against other tags, the two moved together.'}`);
+  } else cap.textContent = tx(`每个点是一个标签。比较 2022–2024 和 2018–2020：横轴 = 它在当年发行中的份额变化，纵轴 = 它在当年成功作品中的份额变化。新游戏的标签越打越多，几乎所有标签的份额都在涨（中位标签：发行 ${mx.toFixed(1)} 倍，成功 ${my.toFixed(1)} 倍），所以两轴都除以中位标签。虚线上方 = 成功涨得比供给快。点击一个点查看该标签。`,
+    `One dot per tag, comparing 2022–2024 with 2018–2020: right = change in its share of each year's releases, up = change in its share of each year's hits. Newer games carry more tags, so nearly every tag's share rose (median tag: releases ${mx.toFixed(1)}×, hits ${my.toFixed(1)}×); both axes are divided by the median tag. Above the dashed line, hits grew faster than supply. Click a dot to open the tag.`);
+}
+
 // ---------- tabs ----------
 const TABS = {
   overview() {
     const { name, d } = current();
     return [card('ovStats', w('更多指标'), '', { wide: true }),
       card('ovYear', w('每年发行数'), ' ', { legend: true, wide: true }),
-      card('ovOwn', w('预估拥有量分布'), w('SteamSpy 拥有量区间；各区间的游戏占比'), { legend: true }),
+      card('ovRate', tx('逐年成功率', 'Success rate by release year'), ' ', { legend: true }),
       card('ovRev', w('评价数分布'), w('各评价数区间的游戏占比'), { legend: true })].join('');
   },
   market() {
     return [card('mkShare', w('份额：供给 vs 需求'), ' ', { legend: true, wide: true }),
+      card('mkQuad', tx('增长象限：供给涨了，成功跟上了吗', 'Growth quadrant: supply grew, did hits keep up?'), ' ', { wide: true }),
       card('mkTrend', w('份额随年份变化'), w('该标签在当年发行中的占比 vs 在当年成功作品中的占比'), { legend: true, wide: true })].join('');
   },
   pricing() {
@@ -1092,7 +1182,7 @@ const TABS = {
     return [card('cpStats', w('开发商结构'), '', { wide: true }),
       card('cpCo', w('常见组合标签'), w('同时带有该标签的游戏中，最常见的其他标签（已排除 Indie、Action 等泛标签）'), { wide: true }),
       card('cpDev', w('评价数最多的开发商'), w('该标签下（全部年份）')),
-      card('cpTop', w('评价数最多的游戏'), w('点击一款游戏，星图上的球就固定显示它'))].join('');
+      card('cpTop', w('评价数最多的游戏'), tx('该标签下（全部年份）· 点击一款游戏，星图上的球就固定显示它', 'In this tag, all years · click a game to pin it on its ball'))].join('');
   },
 };
 const FILL = {
@@ -1102,7 +1192,6 @@ const FILL = {
     const f = name ? famOf(name) : null, st = f ? factionStats(f.key) : null;
     document.getElementById('ovStats').innerHTML = `<div class="minis">${
       mini(w('评价份额'), name ? pct(sh.reviews, 1) : '100%', w('玩家关注度')) +
-      mini(w('营收指数份额'), name ? pct(sh.revenue, 1) : '100%', w('评价数 × 原价')) +
       mini(w('付费中位原价'), money(d.pstat.p50), name ? w('基准 ') + money(B.pstat.p50) : '') +
       mini(w('中位好评率'), pct(d.score), name ? w('基准 ') + pct(B.score) : '') +
       mini(w('中位游玩时长'), hours(d.play.all), name ? w('基准 ') + hours(B.play.all) : '') +
@@ -1110,11 +1199,17 @@ const FILL = {
       mini(w('支持中文'), pct(d.zh), name ? w('基准 ') + pct(B.zh) : '') +
       (f && f.slot >= 0 ? mini(w('阵营排名'), `${factionRank(f.key)}/8`, tx(`${f.name}，中位成功率 ${pct(st.hit, 1)}`, `${f.name}, median success rate ${pct(st.hit, 1)}`)) : '')}</div>`;
     drawYear('ovYear');
-    drawCompare('ovOwn', L.own, d.own_b, B.own_b, null, w('该拥有量区间的游戏占比'));
+    const ys = L.years.filter(y => y >= 2018 && y <= 2024), bl = { name: tx('有标签游戏基准', 'Tagged-games baseline'), short: tx('基准', 'Baseline'), v: B.yrate, color: 'var(--ink2)', dash: '4 3' };
+    drawLines('ovRate', ys, name ? [bl, { name: esc(name), short: tx('本标签', 'This tag'), v: d.yrate, color: 'var(--sel)' }] : [{ ...bl, color: 'var(--sel)', dash: null }]);
+    document.getElementById('ovRateLeg').innerHTML = name ? `<span><span class="sw" style="background:var(--sel)"></span>${esc(name)}</span><span><span class="sw" style="background:var(--ink2)"></span>${bl.name}</span>` : '';
+    document.getElementById('ovRateCap').innerHTML = name
+      ? tx(`越新的游戏积累评价的时间越短，所以每个年份单独比。直接统计是 ${pct(d.hit, 1)}；发行年份相同的普通游戏只有 ${pct(d.hit_exp, 1)}，它是这个水平的 <b>${d.hit_idx.toFixed(2)} 倍</b>。乘以基准 ${pct(B.hit, 1)}，就是“和同年游戏比”的成功率 <b>${pct(d.hit_adj, 1)}</b>。不足 30 款的年份不画。`, `Newer games have had less time to collect reviews, so each year is compared on its own. The simple count is ${pct(d.hit, 1)}; average games from the same years manage ${pct(d.hit_exp, 1)}, so it does <b>${d.hit_idx.toFixed(2)}×</b> as well. Times the ${pct(B.hit, 1)} baseline, that is its rate against same-year games: <b>${pct(d.hit_adj, 1)}</b>. Years under 30 games are left out.`)
+      : tx(`有标签游戏的成功率，按发行年份。2018 年的游戏已经积累了 7 年评价，2024 年的只有 1 年多：比较标签时必须扣掉这层差异。`, `Success rate of tagged games by release year. A 2018 game has had seven years to collect reviews, a 2024 game barely one: tags must be compared net of that.`);
     drawCompare('ovRev', L.rev, d.rev_b, B.rev_b, null, w('该评价区间的游戏占比'));
   },
   market() {
     const { name, d } = current(), s = d.share;
+    drawQuad('mkQuad');
     if (!name) {
       // all-games view: which tags hold the most demand relative to their supply
       const top = visibleTags().map(t => ({ t, ...T[t].share })).sort((a, b) => b.reviews - a.reviews).slice(0, 12);
@@ -1132,8 +1227,6 @@ const FILL = {
         { label: w('游戏数份额'), v: s.games, color: 'var(--rest)', tip: tipFor(w('游戏数份额'), s.games, w('供给：该标签游戏数 ÷ 全部')) },
         { label: w('成功作品份额'), v: s.hits, tip: tipFor(w('成功作品份额'), s.hits, w('≥500 评价的游戏中，属于该标签的比例')) },
         { label: w('评价份额'), v: s.reviews, tip: tipFor(w('评价份额'), s.reviews, w('玩家关注度：评价数之和的占比')) },
-        { label: w('营收指数份额'), v: s.revenue, tip: tipFor(w('营收指数份额'), s.revenue, w('评价数 × 原价之和的占比，仅作相对比较')) },
-        { label: w('当前在线份额'), v: s.ccu, tip: tipFor(w('当前在线份额'), s.ccu, w('抓取时同时在线峰值（Peak CCU）之和的占比')) },
       ], v => pct(v, 2));
       document.getElementById('mkTrendLeg').innerHTML = `<span><span class="sw" style="background:var(--rest)"></span>${w('发行占比')}</span><span><span class="sw" style="background:var(--sel)"></span>${w('成功作品占比')}</span>`;
       drawLines('mkTrend', L.share_years, [
@@ -1156,8 +1249,8 @@ const FILL = {
       mini(w('价格区间 P25–P75'), `${money(p.p25)}–${money(p.p75)}`, vsB(null, () => `${money(bp.p25)}–${money(bp.p75)}`)) +
       mini(w('成功作品中位原价'), money(p.hit_p50), vsB(bp.hit_p50, money)) +
       mini(w('免费游戏占比'), pct(p.free), vsB(bp.free, pct)) +
-      mini(w('抓取时打折中'), pct(p.on_sale), vsB(bp.on_sale, pct)) +
-      mini(w('打折时中位折扣'), pct(p.disc), vsB(bp.disc, pct))}</div>
+      mini(tx('流水估算 P90', 'Est. gross, P90'), d.gross_p90 == null ? '—' : '$' + fmtK(d.gross_p90), name ? w('基准 ') + '$' + fmtK(B.gross_p90) : tx('持有量上限 × 原价', 'owner upper bound × list price')) +
+      mini(tx('流水估算中位数', 'Est. gross, median'), d.gross_med == null ? '—' : '$' + fmtK(d.gross_med), name ? w('基准 ') + '$' + fmtK(B.gross_med) : tx('上限估计，未扣分成和折扣', "upper bound, before Steam's cut"))}</div>
       <p class="callout">${p.hit_p50 && p.p50 ? `${w('成功作品的中位原价是整体的')} <b>${times(p.hit_p50, p.p50)}</b>${w('：')}` + (p.hit_p50 > p.p50 * 1.5 ? w('这个类别里，卖得好的往往不是最便宜的。') : w('这个类别里价格和成功的关系不明显。')) : ''}</p>`;
     drawCompare('prDist', L.price, d.price_dist, B.price_dist, null, w('该价格区间的游戏占比'));
     drawCompare('prHit', L.price, d.price_b.rate, B.price_b.rate, d.price_b.n, w('成功率 = ≥500 评价的占比'));
@@ -1175,11 +1268,16 @@ const FILL = {
     drawCompare('qlLang', L.lang, d.lang_b.rate, B.lang_b.rate, d.lang_b.n, w('成功率 = ≥500 评价的占比'));
     const maxHit = Math.max(0.01, ...L.feats.flatMap(f => [d.feats[f].hit_with || 0, d.feats[f].hit_without || 0]));
     const mb = (v, base, max = 1) => v == null ? '' : `<span class="mbar"><i style="width:${Math.min(100, v / max * 100)}%"></i>${base != null && name ? `<b style="left:${Math.min(100, base / max * 100)}%"></b>` : ''}</span>`;
-    document.getElementById('qlFeat').innerHTML = tx(`<table class="dt"><thead><tr><th>功能</th><th>采用率${name ? '（刻度 = 基准）' : ''}</th><th>有该功能的成功率</th><th>没有的成功率</th><th>差距</th></tr></thead><tbody>${
-      L.feats.map(f => { const x = d.feats[f], b = B.feats[f];
-        return `<tr><td>${f}</td><td>${pct(x.share)}${mb(x.share, b.share)}</td><td>${pct(x.hit_with, 1)}${mb(x.hit_with, null, maxHit)}</td><td>${pct(x.hit_without, 1)}${mb(x.hit_without, null, maxHit)}</td><td>${x.hit_with != null && x.hit_without ? times(x.hit_with, x.hit_without) : '样本少'}</td></tr>`; }).join('')}</tbody></table>`, `<table class="dt"><thead><tr><th>Feature</th><th>Adoption${name ? ' (tick = baseline)' : ''}</th><th>Success with</th><th>Without</th><th>Gap</th></tr></thead><tbody>${
-      L.feats.map(f => { const x = d.feats[f], b = B.feats[f];
-        return `<tr><td>${w(f)}</td><td>${pct(x.share)}${mb(x.share, b.share)}</td><td>${pct(x.hit_with, 1)}${mb(x.hit_with, null, maxHit)}</td><td>${pct(x.hit_without, 1)}${mb(x.hit_without, null, maxHit)}</td><td>${x.hit_with != null && x.hit_without ? times(x.hit_with, x.hit_without) : 'Too few'}</td></tr>`; }).join('')}</tbody></table>`);
+    const frow = f => { const x = d.feats[f], b = B.feats[f], nW = Math.round(x.share * d.n), nO = d.n - nW, lift = x.hit_with != null && x.hit_without ? x.hit_with / x.hit_without : null, bl = b.hit_with / b.hit_without;
+      return { lift, bl, thin: Math.min(nW, nO) < THIN_N, odd: name && lift != null && Math.min(nW, nO) >= THIN_N && (lift >= bl * 1.3 || lift <= bl / 1.3),
+        html: `<tr class="${Math.min(nW, nO) < THIN_N ? 'thin' : ''}"><td>${w(f)}</td><td>${pct(x.share)}${mb(x.share, b.share)}</td><td>${pct(x.hit_with, 1)}${ciTxt(x.hit_with, nW)}${mb(x.hit_with, null, maxHit)}</td><td>${pct(x.hit_without, 1)}${ciTxt(x.hit_without, nO)}${mb(x.hit_without, null, maxHit)}</td><td>${lift != null ? times(x.hit_with, x.hit_without) + (name ? `<small class="ci">${tx('整体', 'overall')} ${bl.toFixed(1)}${w(' 倍')}</small>` : '') : w('样本少')}</td></tr>` }; };
+    const rows = L.feats.map(frow), odd = rows.filter(r => r.odd), rest = rows.filter(r => !r.odd);
+    const table = rs => `<table class="dt"><thead><tr><th>${tx('功能', 'Feature')}</th><th>${tx('采用率', 'Adoption')}${name ? tx('（刻度 = 基准）', ' (tick = baseline)') : ''}</th><th>${tx('有该功能的成功率', 'Success with')}</th><th>${tx('没有的成功率', 'Without')}</th><th>${tx('差距', 'Gap')}</th></tr></thead><tbody>${rs.map(r => r.html).join('')}</tbody></table>`;
+    const ciNote = `<p class="gnote">${tx(`小字 = 95% 置信区间。任一侧不足 ${THIN_N} 款的行变淡。有功能的游戏成功率更高，多半反映团队投入，是相关不是因果。`, `Small print = 95% interval. Rows with fewer than ${THIN_N} games on either side are faded. Games with a feature succeeding more mostly reflects how much the team invested: correlation, not cause.`)}</p>`;
+    document.getElementById('qlFeat').innerHTML = !name ? table(rows) + ciNote
+      : (odd.length ? `<p class="callout">${tx(`几乎所有标签里"有功能"的成功率都更高，所以只展开差距和整体明显不同的 ${odd.length} 项：`, `Having a feature goes with more success in nearly every tag, so only the ${odd.length} whose gap differs clearly from the overall pattern are shown:`)}</p>` + table(odd)
+          : `<p class="callout">${tx('这个标签里，各项功能的差距都和整体差不多。', 'In this tag every feature gap is close to the overall pattern.')}</p>`)
+        + `<details class="more"><summary>${tx(`其余 ${rest.length} 项（和整体差不多，或样本太少）`, `The other ${rest.length} (close to the overall pattern, or too few games)`)}</summary>${table(rest)}</details>` + ciNote;
   },
   comp() {
     const { name, d } = current(), c = d.comp, bc = B.comp;
@@ -1194,9 +1292,9 @@ const FILL = {
     if (!name) document.getElementById('cpCo').innerHTML = w('<div class="empty">在主图中选中一个标签，查看它最常见的标签组合</div>');
     else {
       const max = Math.max(0.01, ...d.cotags.map(x => x.hit), d.hit);
-      document.getElementById('cpCo').innerHTML = tx(`<table class="dt"><thead><tr><th>组合标签</th><th>出现比例</th><th>游戏数</th><th>组合成功率（刻度 = ${esc(name)} 整体 ${pct(d.hit, 1)}）</th></tr></thead><tbody>${
-        d.cotags.map(x => `<tr class="co" data-t="${esc(x.tag)}"><td>+ ${esc(x.tag)}</td><td>${pct(x.share)}</td><td>${fmt(x.n)}</td><td>${pct(x.hit, 1)}<span class="mbar" style="width:110px"><i style="width:${x.hit / max * 100}%"></i><b style="left:${d.hit / max * 100}%"></b></span></td></tr>`).join('')}</tbody></table>`, `<table class="dt"><thead><tr><th>Paired tag</th><th>Appears</th><th>Games</th><th>Pair success (tick = ${esc(name)} overall ${pct(d.hit, 1)})</th></tr></thead><tbody>${
-        d.cotags.map(x => `<tr class="co" data-t="${esc(x.tag)}"><td>+ ${esc(x.tag)}</td><td>${pct(x.share)}</td><td>${fmt(x.n)}</td><td>${pct(x.hit, 1)}<span class="mbar" style="width:110px"><i style="width:${x.hit / max * 100}%"></i><b style="left:${d.hit / max * 100}%"></b></span></td></tr>`).join('')}</tbody></table>`);
+      document.getElementById('cpCo').innerHTML = `<table class="dt"><thead><tr><th>${tx('组合标签', 'Paired tag')}</th><th>${tx('出现比例', 'Appears')}</th><th>${tx('游戏数', 'Games')}</th><th>${tx(`组合的成功率，直接统计（刻度 = ${esc(name)} 整体 ${pct(d.hit, 1)}）`, `Pair's success, simple count (tick = ${esc(name)} overall ${pct(d.hit, 1)})`)}</th></tr></thead><tbody>${
+        d.cotags.map(x => `<tr class="co${x.n < THIN_N ? ' thin' : ''}" data-t="${esc(x.tag)}"><td>+ ${esc(x.tag)}</td><td>${pct(x.share)}</td><td>${fmt(x.n)}</td><td>${pct(x.hit, 1)}${ciTxt(x.hit, x.n)}<span class="mbar" style="width:110px"><i style="width:${x.hit / max * 100}%"></i><b style="left:${d.hit / max * 100}%"></b></span></td></tr>`).join('')}</tbody></table>
+        <p class="gnote">${tx(`小字 = 95% 置信区间；不足 ${THIN_N} 款的组合变淡。区间盖住白色刻度的组合，和该标签整体没有可靠差别。`, `Small print = 95% interval; pairs under ${THIN_N} games are faded. If the interval covers the white tick, the pair is not reliably different from the tag overall.`)}</p>`;
     }
     document.getElementById('cpDev').innerHTML = `<table class="dt"><thead><tr><th>${w('开发商')}</th><th>${w('游戏')}</th><th>${w('成功')}</th><th>${w('评价数')}</th></tr></thead><tbody>${
       d.devs.map(x => `<tr><td>${esc(x.name)}</td><td>${x.games}</td><td>${x.hits}</td><td>${fmt(x.reviews)}</td></tr>`).join('')}</tbody></table>`;
@@ -1209,12 +1307,12 @@ function achievements(d) {
   const out = [], s = d.share, r = s.reviews / s.games, h = s.hits / s.games, medN = median(visibleTags().map(t => T[t].n));
   const zh = d.feats['中文'], bz = B.feats['中文'], c = d.comp;
   const zr = zh.hit_with != null && zh.hit_without ? zh.hit_with / zh.hit_without : null, bzr = bz.hit_with / bz.hit_without;
-  if (d.hit >= 1.8 * B.hit && d.n <= medN) out.push(['trophy', w('蓝海'), tx(`成功率 ${pct(d.hit, 1)} 是基准的 ${(d.hit / B.hit).toFixed(1)} 倍，且供给 ${fmt(d.n)} 款低于标签中位数 ${fmt(Math.round(medN))}`, `Success rate ${pct(d.hit, 1)} is ${(d.hit / B.hit).toFixed(1)}× the baseline, with ${fmt(d.n)} games, below the median tag's ${fmt(Math.round(medN))}`)]);
+  if (adj(d) >= 1.8 * B.hit && d.n <= medN) out.push(['trophy', w('蓝海'), tx(`和同年游戏比，成功率 ${pct(adj(d), 1)} 是基准的 ${(adj(d) / B.hit).toFixed(1)} 倍，且供给 ${fmt(d.n)} 款低于标签中位数 ${fmt(Math.round(medN))}`, `Against same-year games, its success rate ${pct(adj(d), 1)} is ${(adj(d) / B.hit).toFixed(1)}× the baseline, with ${fmt(d.n)} games, below the median tag's ${fmt(Math.round(medN))}`)]);
   if (r >= 1.5) out.push(['flame', w('需求旺盛'), tx(`评价份额是游戏数份额的 ${r.toFixed(1)} 倍`, `Review share is ${r.toFixed(1)}× its share of games`)]);
   if (d.conc.top1 >= 0.3) out.push(['crown', w('巨头统治'), tx(`第 1 名独占 ${pct(d.conc.top1)} 的评价`, `The top game alone takes ${pct(d.conc.top1)} of reviews`)]);
   if (h >= 1.2 && r < 1) out.push(['cozy', w('稳定小成功'), tx(`成功作品份额是供给的 ${h.toFixed(1)} 倍，但评价份额只有 ${r.toFixed(1)} 倍：中等体量的成功多，爆款少`, `Share of hits is ${h.toFixed(1)}× supply, but review share only ${r.toFixed(1)}×: many mid-sized wins, few breakouts`)]);
-  if (d.hit < 0.8 * B.hit && d.n >= 3000) out.push(['wave', w('红海'), tx(`供给 ${fmt(d.n)} 款，成功率只有基准的 ${(d.hit / B.hit).toFixed(1)} 倍`, `${fmt(d.n)} games, success rate only ${(d.hit / B.hit).toFixed(1)}× the baseline`)]);
-  if (d.recent >= 0.7) out.push(['rocket', w('新兴赛道'), tx(`${pct(d.recent)} 的游戏是 2022 年后发行的`, `${pct(d.recent)} of its games came out in 2022 or later`)]);
+  if (adj(d) < 0.8 * B.hit && d.n >= 3000) out.push(['wave', w('红海'), tx(`供给 ${fmt(d.n)} 款，和同年游戏比，成功率只有基准的 ${(adj(d) / B.hit).toFixed(1)} 倍`, `${fmt(d.n)} games; against same-year games, a success rate only ${(adj(d) / B.hit).toFixed(1)}× the baseline`)]);
+  if (d.recent >= 0.7) out.push(['rocket', w('新兴赛道'), tx(`${pct(d.recent)} 的游戏是 2022 年后发行的${d.grow && d.grow.rel ? `；发行份额是 2018–2020 年的 ${d.grow.rel.toFixed(1)} 倍` : ''}`, `${pct(d.recent)} of its games came out in 2022 or later${d.grow && d.grow.rel ? `; its share of releases is ${d.grow.rel.toFixed(1)}× what it was in 2018–2020` : ''}`)]);
   if (d.score != null && d.score >= 0.9) out.push(['gem', w('口碑之选'), tx(`中位好评率 ${pct(d.score)}`, `Median rating ${pct(d.score)}`)]);
   if (zr != null && zr >= bzr * 1.3) out.push(['zh', w('中文加成'), tx(`支持中文的成功率是不支持的 ${zr.toFixed(1)} 倍，高于整体的 ${bzr.toFixed(1)} 倍（相关，非因果）`, `With Chinese support the success rate is ${zr.toFixed(1)}× higher, above the overall ${bzr.toFixed(1)}× (correlation, not causation)`)]);
   if (c.hit_debut != null && c.hit_vet != null && c.hit_debut >= c.hit_vet) out.push(['flask', w('新人友好'), tx(`首作成功率 ${pct(c.hit_debut, 1)} 不低于老手作品的 ${pct(c.hit_vet, 1)}`, `Debut success ${pct(c.hit_debut, 1)} is no lower than veterans' ${pct(c.hit_vet, 1)}`)]);
@@ -1287,11 +1385,11 @@ function drawBoss(name, d, animate) {
 }
 function verdict(name, d) {
   if (!name) return `${w('2018–2024 年，有标签的游戏里只有')} <b>${pct(d.hit, 1)}</b> ${w('拿到 500 条评价。')}`;
-  const s = d.share, r = s.reviews / s.games, h = s.hits / s.games, x = (d.hit / B.hit).toFixed(1), medN = median(visibleTags().map(t => T[t].n));
+  const s = d.share, r = s.reviews / s.games, h = s.hits / s.games, x = (adj(d) / B.hit).toFixed(1), medN = median(visibleTags().map(t => T[t].n));
   const boss = d.top.find(g => g.year >= 2018 && g.year <= 2024);
-  if (d.hit < 0.8 * B.hit && d.n >= 3000) return tx(`这里很拥挤：${fmt(d.n)} 款游戏，成功率只有基准的 ${x} 倍。`, `Crowded: ${fmt(d.n)} games, and a success rate only ${x}× the baseline.`);
+  if (adj(d) < 0.8 * B.hit && d.n >= 3000) return tx(`这里很拥挤：${fmt(d.n)} 款游戏，成功率只有基准的 ${x} 倍。`, `Crowded: ${fmt(d.n)} games, and a success rate only ${x}× the baseline.`);
   if (d.conc.top1 >= 0.3 && boss) return tx(`${esc(boss.name)} 一款就拿走了 ${pct(d.conc.top1)} 的评价，其他游戏在抢剩下的。`, `${esc(boss.name)} alone takes ${pct(d.conc.top1)} of the reviews; everyone else fights over the rest.`);
-  if (d.hit >= 1.8 * B.hit && d.n <= medN) return tx(`这里还有机会：成功率是基准的 ${x} 倍，竞争者却不多。`, `There is room here: ${x}× the baseline success rate, and few competitors.`);
+  if (adj(d) >= 1.8 * B.hit && d.n <= medN) return tx(`这里还有机会：成功率是基准的 ${x} 倍，竞争者却不多。`, `There is room here: ${x}× the baseline success rate, and few competitors.`);
   if (r >= 1.5) return tx(`玩家的关注远多于供给：评价份额是游戏数份额的 ${r.toFixed(1)} 倍。`, `Players pay far more attention than supply suggests: review share is ${r.toFixed(1)}× the share of games.`);
   if (h >= 1.2 && r < 1) return w('这里容易小成功，但很难出大爆款。');
   if (h < 0.8) return w('成功率低于平均，大部分游戏很难被看见。');
@@ -1335,8 +1433,9 @@ function drawKpis(animate) {
 }
 function drawSmx() {
   const { name, d, group } = current(), tagMed = m => median(visibleTags().map(t => m.f(T[t])));
-  document.getElementById('smxh').textContent = group ? tx('组内标签的中位成功率，三种算法 · 点击切换星图高度', 'Median success rate of the tags, three ways · click one to set the map height') : tx('成功率，三种算法 · 点击切换星图高度', 'Success rate, three ways · click one to set the map height');
-  document.getElementById('smx').innerHTML = SM.map(m => { const v = m.f(d) ?? 0, b = m.f(B); return `<button type="button" data-k="${m.k}" aria-pressed="${state.sm === m.k}" title="${esc(m.s)}"><div class="k">${m.t}</div><div class="v">${pct(v, 1)}</div><div class="d">${group ? tx(`全部标签中位数的 ${(v / tagMed(m)).toFixed(1)} 倍`, `${(v / tagMed(m)).toFixed(1)}× the all-tag median`) : name ? tx(`基准的 ${(v / b).toFixed(1)} 倍`, `${(v / b).toFixed(1)}× baseline`) : esc(m.s)}</div></button>`; }).join('');
+  document.getElementById('smxh').textContent = group ? tx('组内标签的中位成功率 · 两种算法，点击切换星图高度', 'Median success rate of the tags · two ways to count, click one to set the map height') : tx('成功率 = 拿到 500 条评价的游戏占比 · 两种算法，点击切换星图高度', 'Success rate = share of games reaching 500 reviews · two ways to count, click one to set the map height');
+  document.getElementById('smx').innerHTML = SM.map(m => { const v = m.f(d) ?? 0, b = m.f(B); return `<button type="button" data-k="${m.k}" aria-pressed="${state.sm === m.k}" title="${esc(m.s)}"><div class="k">${m.t}</div><div class="v">${pct(v, 1)}</div><div class="d">${group ? tx(`全部标签中位数的 ${(v / tagMed(m)).toFixed(1)} 倍`, `${(v / tagMed(m)).toFixed(1)}× the all-tag median`) : name ? tx(`基准的 ${(v / b).toFixed(1)} 倍`, `${(v / b).toFixed(1)}× baseline`) : esc(m.s)}</div></button>`; }).join('')
+    + (name ? `<div class="sx" title="${tx('如果这个标签的游戏都只是同年发行游戏的平均水平，成功率会是多少。上面两个数的差别就来自它', 'What the rate would be if its games were merely average for the years they came out. It explains the gap between the two numbers on the left')}"><div class="k">${tx('同年游戏的平均水平', 'Average for its release years')}</div><div class="v">${pct(d.hit_exp, 1)}</div><div class="d">${tx(`${pct(d.recent)} 是 2022 年后发行`, `${pct(d.recent)} released 2022+`)}</div></div>` : '');
 }
 const SEL_HINT = { game: tx('选中了一款游戏：星图上只有它所在的球是亮的', 'One game selected: only its ball stays lit on the map'), tag: tx('选中了一个类别：连线指向常和它一起出现的标签', 'A tag is selected: lines lead to tags that often appear with it'), group: tx('选中了一组标签：组内每颗球都被点亮', 'A group is selected: every tag in it is lit on the map'), all: tx('全部游戏概况', 'Overview of all games') };
 function drawCrumbs() {
@@ -1366,7 +1465,7 @@ const CHAPTERS = [
   { k: 'market', icon: 'flame', t: w('市场份额'), z: (n, d) => n ? tx(`评价份额 ${pct(d.share.reviews, 1)}`, `Review share ${pct(d.share.reviews, 1)}`) : w('哪些标签最受关注') },
   { k: 'pricing', icon: 'gem', t: w('定价'), z: (n, d) => tx(`成功作品中位 ${money(d.pstat.hit_p50)}`, `Hits' median price ${money(d.pstat.hit_p50)}`) },
   { k: 'quality', icon: 'trophy', t: w('玩家与品质'), z: (n, d) => tx(`中位好评率 ${pct(d.score)}`, `Median rating ${pct(d.score)}`) },
-  { k: 'comp', icon: 'swords', t: w('竞争格局'), z: (n, d) => { const c = (d.cotags || []).filter(x => x.n >= 50).sort((a, b) => b.hit - a.hit)[0]; return c ? tx(`加 ${esc(c.tag)} 成功率 ${pct(c.hit)}`, `With ${esc(c.tag)}: ${pct(c.hit)} success`) : tx(`${fmt(d.comp.devs)} 家开发商`, `${fmt(d.comp.devs)} developers`); } },
+  { k: 'comp', icon: 'swords', t: w('竞争格局'), z: (n, d) => { const c = (d.cotags || []).filter(x => x.n >= 100).sort((a, b) => b.hit - a.hit)[0]; return c ? tx(`加 ${esc(c.tag)} 成功率 ${pct(c.hit)}`, `With ${esc(c.tag)}: ${pct(c.hit)} success`) : tx(`${fmt(d.comp.devs)} 家开发商`, `${fmt(d.comp.devs)} developers`); } },
 ];
 let reelIO = null;
 function drawChapters(animate) {
@@ -1428,6 +1527,7 @@ function layoutMosaic() {
   if (pA && !narrow && right.clientHeight - off - 18 < 240) pA.classList.add('flow');   // too short to pin: let the column scroll with the page
   const H = Math.round(narrow ? Math.max(300, Math.min(W * 1.05, right.clientHeight - host.offsetTop - 44)) : Math.max(260, right.clientHeight - off - 18));
   host.style.height = H + 'px';
+  if (pA) pA.style.setProperty('--pin', Math.min(50, right.clientHeight - pA.offsetHeight - 16) + 'px');
   const list = d.games.slice().sort((a, b) => m.v(b) - m.v(a)), vals = list.map(m.v), rest = d.gstat.total - d.games.length;
   const lo = vals[vals.length - 1] || 1, A = 2.14, withRest = rest > 0 ? [...vals, Math.max(lo * 2.2, vals[0] * .02)] : vals, rects = squarify(withRest, W / A, H), gap = 2;
   const place = (n, r) => { const w = r.w * A - gap, h = r.h - gap; n.style.left = r.x * A + 'px'; n.style.top = r.y + 'px'; n.style.width = w + 'px'; n.style.height = h + 'px'; return [w, h]; };
@@ -1440,8 +1540,8 @@ function drawGallery(animate) {
   const { name, d, group } = current(), key = name || (group ? 'g:' + group + state.showOutcome : '__all'), host = document.getElementById('mosaic');
   document.getElementById('gseg').innerHTML = `<span class="glb">${tx('方块大小', 'Tile size')}</span>` + METRICS.map(m => `<button type="button" data-k="${m.k}" aria-pressed="${state.gm === m.k}">${m.t}</button>`).join('');
   const shown = d.games.reduce((a, g) => a + g.r, 0);
-  if (group) document.getElementById('gcount').textContent = tx(`组内评价最多的 ${d.games.length} 款`, `The ${d.games.length} most-reviewed games in the group`);
-  else document.getElementById('gcount').textContent = tx(`${d.games.length} / ${fmt(d.gstat.total)} 款 · 覆盖 ${pct(Math.min(1, shown / Math.max(1, d.gstat.reviews)))} 的评价`, `${d.games.length} of ${fmt(d.gstat.total)} games · ${pct(Math.min(1, shown / Math.max(1, d.gstat.reviews)))} of reviews`);
+  if (group) document.getElementById('gcount').textContent = tx(`组内评价最多的 ${d.games.length} 款 · 全部年份`, `The ${d.games.length} most-reviewed games in the group · all years`);
+  else document.getElementById('gcount').textContent = tx(`${d.games.length} / ${fmt(d.gstat.total)} 款 · 覆盖 ${pct(Math.min(1, shown / Math.max(1, d.gstat.reviews)))} 的评价 · 全部年份`, `${d.games.length} of ${fmt(d.gstat.total)} games · ${pct(Math.min(1, shown / Math.max(1, d.gstat.reviews)))} of reviews · all years`);
   if (galleryFor !== key) {
     galleryFor = key;
     host.innerHTML = d.games.map((g, i) => `<button type="button" class="gt" data-i="${g.i}" style="--i:${Math.min(i, 40)}" aria-label="${esc(g.n)}"><img src="${coverSrc(g)}" alt=""><span class="gsel">${tx('已选中', 'SELECTED')}</span><span class="gv"></span><span class="gn">${esc(g.n)}</span></button>`).join('') + (d.gstat.total > d.games.length ? '<div class="gt rest" style="--i:40"></div>' : '');
@@ -1451,6 +1551,7 @@ function drawGallery(animate) {
   const g = state.game ? findGame(d, state.game.i) || d.games[0] : name ? findGame(d, M.currentGame(name)) || d.games[0] : d.games[0];
   host.classList.toggle('has', !!state.game);
   setHero(g, d);
+  layoutMosaic();   // the hero above has just changed height: measure again, or the column is sized against a stale offset
 }
 document.getElementById('gseg').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; state.gm = b.dataset.k; document.querySelectorAll('#gseg button').forEach(n => n.setAttribute('aria-pressed', n === b)); layoutMosaic(); });
 document.getElementById('mosaic').addEventListener('click', e => {
@@ -1511,7 +1612,7 @@ function drawFilter(full) {
 function setFilter(fn) { fn(state.flt); drawFilter(false); M.refresh(); }
 function drawMapCtl() {
   drawFilter(true);
-  document.getElementById('smSeg').innerHTML = `<span class="lb">${tx('成功 =', 'Success =')}</span>` + SM.map(m => `<button type="button" data-k="${m.k}" aria-pressed="${state.sm === m.k}" title="${esc(m.s)}">${m.t}</button>`).join('');
+  document.getElementById('smSeg').innerHTML = `<span class="lb">${tx('成功率', 'Success rate')}</span>` + SM.map(m => `<button type="button" data-k="${m.k}" aria-pressed="${state.sm === m.k}" title="${esc(m.s)}">${m.t}</button>`).join('');
   document.getElementById('grpSeg').innerHTML = `<span class="lb">${tx('按同类游戏数分组', 'Group by number of games')}</span>` + GROUPS.map(g => `<button type="button" data-k="${g.k}" aria-pressed="${state.group === g.k}" title="${tx(`每个标签 ${rangeTxt(g)} 款游戏`, `${rangeTxt(g)} games per tag`)}">${g.t}<small>${groupTags(g.k).length}</small></button>`).join('');
 }
 const gTip = (e, n) => { const g = findGame(current().d, +n.dataset.i); if (g) showTip(e, `<b>${esc(g.n)}</b>${row(w('评价'), fmt(g.r))}${row(w('好评率'), pct(g.p))}${row(w('原价'), g.c ? money(g.c) : w('免费'))}${row(w('发行'), g.y)}${g.ow ? row(tx('持有量（上限）', 'Owners (upper bound)'), fmtK(g.ow)) : ''}${g.g != null ? row(tx('流水估算（上限）', 'Est. gross (upper bound)'), g.g ? '$' + fmtK(g.g) : w('免费')) : ''}${g.h != null ? row(w('中位时长'), hours(g.h)) : ''}${g.src ? row(tx('来自', 'From tag'), esc(g.src)) : ''}${note(tx('点击选中这款游戏', 'Click to select this game'))}`); };
@@ -1621,7 +1722,9 @@ function lock(t, stop = -1, keepAll = false) {
   document.getElementById('q').value = t || '';
   const layout = document.querySelector('.layout'), open = !!(t || state.panelAll || state.group), wasOpen = layout.classList.contains('open');
   if (!open) { state.tab = null; state.bossOpen = false; galleryFor = null; }
-  layout.classList.toggle('open', open); document.body.classList.toggle('panel-open', open);
+  layout.classList.toggle('open', open); document.body.classList.toggle('panel-open', open); document.body.classList.toggle('tag-sel', !!t);
+  clearTimeout(lock.closeT); layout.classList.toggle('closing', wasOpen && !open && motionOK());   // let the panel fade out before it is removed
+  if (wasOpen && !open) lock.closeT = setTimeout(() => layout.classList.remove('closing'), 260);
   M.onLock(open && !wasOpen);
   drawLinked(true);
   if (open && !state.tab) document.querySelector('.right').scrollTop = 0;
@@ -1703,7 +1806,7 @@ function drawWorlds() {
     const st = factionStats(f.key);
     const flag = (WORLD_FLAGS[f.key] || []).filter(t => T[t]).flatMap(t => T[t].covers);
     const cov = [...flag, ...st.tags.flatMap(t => T[t].covers).sort((a, b) => b.r - a.r)].find(c => !used.has(c.n)); if (cov) used.add(cov.n);
-    const top = st.tags.filter(t => T[t].n >= 300).sort((a, b) => T[b].hit * Math.log10(T[b].n) - T[a].hit * Math.log10(T[a].n)).slice(0, 3);
+    const top = st.tags.filter(t => T[t].n >= 300).sort((a, b) => adj(T[b]) * Math.log10(T[b].n) - adj(T[a]) * Math.log10(T[a].n)).slice(0, 3);
     return tx(`<div class="world" tabindex="0" role="button" data-f="${f.key}" style="--fc:${famColor(f)};--i:${i % 4}">${cov ? `<img src="${coverBig(cov)}" alt="">` : ''}<div class="wbody"><div class="wname">${icon(f.key, 18)}${f.name}</div><div class="wsub">${f.motto} · ${st.n} 个标签</div><div class="wtags">${top.map(t => `<button type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div></div></div>`, `<div class="world" tabindex="0" role="button" data-f="${f.key}" style="--fc:${famColor(f)};--i:${i % 4}">${cov ? `<img src="${coverBig(cov)}" alt="">` : ''}<div class="wbody"><div class="wname">${icon(f.key, 18)}${f.name}</div><div class="wsub">${f.motto} · ${st.n} tags</div><div class="wtags">${top.map(t => `<button type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div></div></div>`);
   }).join('');
   const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('in', e.isIntersecting)), { threshold: .12 });
@@ -1721,16 +1824,16 @@ const visible = t => T[t] && (state.showOutcome || !T[t].outcome);
 function tourStops() {
   const stops = [];
   if (visible('2D Platformer')) { const d = T['2D Platformer']; stops.push({ icon: 'wave', title: w('红海'), tag: '2D Platformer', chapter: 'market',
-    text: tx(`${fmt(d.n)} 款、中位好评率 <b>${pct(d.score)}</b>，成功率却只有 <b>${pct(d.hit, 1)}</b>：好游戏也会被淹没`, `${fmt(d.n)} games, median rating <b>${pct(d.score)}</b>, yet a success rate of only <b>${pct(d.hit, 1)}</b>: good games get buried`) }); }
+    text: tx(`${fmt(d.n)} 款、中位好评率 <b>${pct(d.score)}</b>，成功率却只有 <b>${pct(adj(d), 1)}</b>：好游戏也会被淹没`, `${fmt(d.n)} games, median rating <b>${pct(d.score)}</b>, yet a success rate of only <b>${pct(adj(d), 1)}</b>: good games get buried`) }); }
   if (visible('Colony Sim')) { const d = T['Colony Sim']; stops.push({ icon: 'trophy', title: w('蓝海'), tag: 'Colony Sim',
-    text: tx(`成功率 <b>${pct(d.hit, 1)}</b>，是基准的 ${(d.hit / B.hit).toFixed(1)} 倍；供给只有 ${fmt(d.n)} 款`, `Success rate <b>${pct(d.hit, 1)}</b>, ${(d.hit / B.hit).toFixed(1)}× the baseline, from just ${fmt(d.n)} games`) }); }
+    text: tx(`成功率 <b>${pct(adj(d), 1)}</b>，是基准的 ${(adj(d) / B.hit).toFixed(1)} 倍；供给只有 ${fmt(d.n)} 款`, `Success rate <b>${pct(adj(d), 1)}</b>, ${(adj(d) / B.hit).toFixed(1)}× the baseline, from just ${fmt(d.n)} games`) }); }
   if (visible('Cozy')) { const d = T['Cozy']; stops.push({ icon: 'rocket', title: w('新星'), tag: 'Cozy', chapter: 'market',
     text: `<b>${pct(d.recent)}</b> ${w('是 2022 年后发行的，中位好评率')} <b>${pct(d.score)}</b>` }); }
   const giant = visibleTags().filter(t => T[t].n >= 1000 && !['other', 'theme'].includes(famOf(t).key)).sort((a, b) => T[b].conc.top1 - T[a].conc.top1)[0];
   if (giant) { const d = T[giant], g = d.top.find(x => x.year >= 2018 && x.year <= 2024); stops.push({ icon: 'crown', title: w('巨头统治'), tag: giant, boss: true,
     text: tx(`${g ? esc(g.name) + ' ' : ''}一款独占 <b>${pct(d.conc.top1)}</b> 的评价`, `${g ? esc(g.name) + ' ' : ''}alone takes <b>${pct(d.conc.top1)}</b> of the reviews`) }); }
   if (visible('Roguelike Deckbuilder')) { const d = T['Roguelike Deckbuilder'];
-    const co = d.cotags.filter(c => c.n >= 50 && visible(c.tag)).sort((a, b) => b.hit - a.hit)[0];
+    const co = d.cotags.filter(c => c.n >= 100 && visible(c.tag)).sort((a, b) => b.hit - a.hit)[0];
     if (co) stops.push({ icon: 'link', title: w('最佳组合'), tag: 'Roguelike Deckbuilder', chapter: 'comp', co: co.tag,
       text: tx(`加上 ${esc(co.tag)}，成功率升到 <b>${pct(co.hit, 1)}</b>，是该标签平均的 ${(co.hit / d.hit).toFixed(1)} 倍`, `Add ${esc(co.tag)} and success climbs to <b>${pct(co.hit, 1)}</b>, ${(co.hit / d.hit).toFixed(1)}× the tag's average`) }); }
   return stops;
@@ -1769,7 +1872,7 @@ function drawMain() { M.refresh(); }
 function restyleDots() { M.refresh(); }
 function conHighlight(t) { conHover = t; M.kick(); }
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
-// ---------- 3D map: x = games (log), y = success rate (three definitions), z = share released 2022+; size = games, liquid = median rating ----------
+// ---------- 3D map: x = games (log), y = success rate (year-adjusted or raw), z = share released 2022+; size = games, liquid = median rating ----------
 const REST_T = PH.REST_T;
 // What the data says. Every number is computed from the dataset when the page loads.
 const FINDINGS = (() => {
@@ -1778,22 +1881,22 @@ const FINDINGS = (() => {
   const noTheme = t => famOf(t).key !== 'theme';
   const giants = genre.filter(t => noTheme(t) && T[t].n >= 300 && T[t].conc.top1 >= .3).sort((a, b) => T[b].conc.top1 * Math.log10(T[b].n) - T[a].conc.top1 * Math.log10(T[a].n));
   const giantEx = giants.filter(t => T[t].n >= 1000)[0] || giants[0];
-  const gem = genre.filter(t => noTheme(t) && T[t].score >= .87 && T[t].hit < B.hit).sort((a, b) => T[b].n - T[a].n);
+  const gem = genre.filter(t => noTheme(t) && T[t].score >= .87 && adj(T[t]) < B.hit).sort((a, b) => T[b].n - T[a].n);
   const pricey = genre.slice().sort((a, b) => T[b].pstat.p50 - T[a].pstat.p50).slice(0, 20);
-  const blue = genre.filter(t => noTheme(t) && T[t].hit >= 1.8 * B.hit && T[t].n <= medN && T[t].score >= .77).sort((a, b) => T[b].hit - T[a].hit);
-  const red = genre.filter(t => T[t].hit < .8 * B.hit && T[t].n >= 3000).sort((a, b) => T[b].n - T[a].n);
+  const blue = genre.filter(t => noTheme(t) && adj(T[t]) >= 1.8 * B.hit && T[t].n <= medN && T[t].score >= .77).sort((a, b) => adj(T[b]) - adj(T[a]));
+  const red = genre.filter(t => adj(T[t]) < .8 * B.hit && T[t].n >= 3000).sort((a, b) => T[b].n - T[a].n);
   const pr = B.price_b.rate, lg = B.lang_b.rate, g0 = giantEx && T[giantEx].top.find(x => x.year >= 2018 && x.year <= 2024), m0 = gem[0], names = (l, k) => l.slice(0, k).map(esc).join(w('、'));
   const out = [
     { big: `${(n24 / n20).toFixed(1)}×`, title: w('供给翻倍，被看见的没变'), view: 0, spot: null, short: tx(`发行量 2020→2024 涨到 ${(n24 / n20).toFixed(1)} 倍，成功作品几乎不变（${fmt(h20)} → ${fmt(h24)}）`, `Releases grew ${(n24 / n20).toFixed(1)}× from 2020 to 2024; hits barely moved (${fmt(h20)} → ${fmt(h24)})`),
-      body: tx(`2020 到 2024 年，发行量从 ${fmt(n20)} 涨到 ${fmt(n24)}，拿到 500 条评价的游戏却只从 ${fmt(h20)} 变成 ${fmt(h24)}。`, `From 2020 to 2024, releases went from ${fmt(n20)} to ${fmt(n24)}. Games reaching 500 reviews went from ${fmt(h20)} to just ${fmt(h24)}.`) },
+      body: tx(`Steam 全部游戏（含无标签的）：2020 到 2024 年，发行量从 ${fmt(n20)} 涨到 ${fmt(n24)}，拿到 500 条评价的游戏却只从 ${fmt(h20)} 变成 ${fmt(h24)}。`, `Across all Steam games, tagged or not: from 2020 to 2024, releases went from ${fmt(n20)} to ${fmt(n24)}. Games reaching 500 reviews went from ${fmt(h20)} to just ${fmt(h24)}.`) },
     { big: pct(B.conc.top10pct), title: w('注意力高度集中'), view: .5, spot: new Set(giants), short: tx(`前 10% 的游戏拿走 ${pct(B.conc.top10pct)} 的评价`, `The top 10% of games take ${pct(B.conc.top10pct)} of reviews`),
       body: tx(`前 10% 的游戏拿走了 ${pct(B.conc.top10pct)} 的评价。在高亮的 ${giants.length} 个类别里，一款游戏就占三成以上${g0 ? `，比如 ${esc(giantEx)} 里的 ${esc(g0.name)}（${pct(T[giantEx].conc.top1)}）` : ''}。`, `The top 10% of games take ${pct(B.conc.top10pct)} of all reviews. In the ${giants.length} highlighted tags, a single game holds over 30%${g0 ? `, like ${esc(g0.name)} in ${esc(giantEx)} (${pct(T[giantEx].conc.top1)})` : ''}.`) },
     { big: tx(`${gem.length} 类`, `${gem.length}`), title: w('口碑好，不等于被看见'), view: -.95, spot: new Set(gem), short: tx(`${gem.length} 个类别口碑很好，成功率却低于平均`, `${gem.length} well-loved tags still trail the average success rate`),
-      body: tx(`这些类别中位好评率 ≥ 87%，成功率却低于基准 ${pct(B.hit, 1)}。${m0 ? `${esc(m0)}：好评 ${pct(T[m0].score)}，成功率 ${pct(T[m0].hit, 1)}。` : ''}口碑很高，位置却很低。`, `These tags have a median rating of 87% or more, yet a success rate below the ${pct(B.hit, 1)} baseline.${m0 ? ` ${esc(m0)}: ${pct(T[m0].score)} positive, ${pct(T[m0].hit, 1)} success.` : ''} Highly rated, yet low on the map.`) },
+      body: tx(`这些类别中位好评率 ≥ 87%，和同年发行的游戏比，成功率仍低于基准 ${pct(B.hit, 1)}。${m0 ? `${esc(m0)}：好评 ${pct(T[m0].score)}，成功率 ${pct(adj(T[m0]), 1)}。` : ''}口碑很高，位置却很低。`, `These tags have a median rating of 87% or more, yet a success rate, judged against same-year games, below the ${pct(B.hit, 1)} baseline.${m0 ? ` ${esc(m0)}: ${pct(T[m0].score)} positive, ${pct(adj(T[m0]), 1)} success.` : ''} Highly rated, yet low on the map.`) },
     { big: `${(pr[4] / pr[1]).toFixed(0)}×`, title: w('投入看得见'), view: .3, spot: new Set(pricey), short: tx(`原价 $20–30 的成功率是 $5 以下的 ${(pr[4] / pr[1]).toFixed(0)} 倍`, `Games listed at $20–30 succeed ${(pr[4] / pr[1]).toFixed(0)}× as often as those under $5`),
       body: tx(`原价 $20–30 的游戏成功率 ${pct(pr[4])}，不到 $5 的只有 ${pct(pr[1])}；支持 10 种以上语言的 ${pct(lg[3])}，只有 1 种的 ${pct(lg[0])}。这更多反映团队投入，不是涨价就能成功。`, `Games listed at $20–30 succeed ${pct(pr[4])} of the time, those under $5 only ${pct(pr[1])}. With 10+ languages it's ${pct(lg[3])}, with one language ${pct(lg[0])}. This mostly reflects how much a team invested; raising the price alone won't do it.`) },
     { big: tx(`${blue.length} 个`, `${blue.length}`), title: w('机会在这里'), view: -.3, spot: new Set(blue), short: tx(`${blue.length} 个类别成功率高、竞争者少，比如 ${names(blue, 3)}`, `${blue.length} tags combine high success with few competitors, like ${names(blue, 3)}`),
-      body: tx(`高亮的类别成功率至少是基准的 1.8 倍，供给低于中位数，好评率也不差：${names(blue, 6)}。`, `The highlighted tags succeed at least 1.8× the baseline, with below-median supply and solid ratings: ${names(blue, 6)}.`) },
+      body: tx(`高亮的类别和同年发行的游戏比，成功率仍至少是基准的 1.8 倍，供给低于中位数，好评率也不差：${names(blue, 6)}。`, `Judged against games from the same years, the highlighted tags still succeed at least 1.8× the baseline, with below-median supply and solid ratings: ${names(blue, 6)}.`) },
   ];
   out.red = red; out.blue = blue;
   return out;
@@ -1807,14 +1910,14 @@ function drawSummary() {
     <li><b>别指望低价带来曝光。</b>$5 以下的成功率只有 ${pct(pr[1])}，$10–20 是 ${pct(pr[3])}。</li>
     <li><b>把本地化当基本功。</b>支持中文的游戏成功率 ${pct(zh.hit_with)}，不支持的 ${pct(zh.hit_without)}。</li>
     <li><b>好口碑只是入场券。</b>质量之外，还要想清楚玩家怎么发现你。</li></ol>
-    <p class="sumnote">以上都是相关关系，不代表因果。成功 = 至少 500 条 Steam 评价；范围是 2018–2024 年发行、有标签的游戏。向上滑动可以回到星图。</p></div>`, `<div class="sumin"><div class="kicker">Conclusions</div><h2>What this data tells us</h2>
+    <p class="sumnote">以上都是相关关系，不代表因果。成功 = 至少 500 条 Steam 评价；比较类别时，每款游戏只和同年发行的游戏比；范围是 2018–2024 年发行、有标签的游戏。向上滑动可以回到星图。</p></div>`, `<div class="sumin"><div class="kicker">Conclusions</div><h2>What this data tells us</h2>
     <div class="sumgrid">${FINDINGS.map(f => `<div class="sumc"><div class="sb">${f.big}</div><b>${f.title}</b><span>${f.short}</span></div>`).join('')}</div>
     <h3>If you are making a new game</h3>
     <ol class="sumact"><li><b>Pick the lane before the game.</b> Avoid red oceans like ${list(r.slice(0, 3))}; look first at ${list(b.slice(0, 3))}.</li>
     <li><b>Don't count on a low price for visibility.</b> Under $5 the success rate is only ${pct(pr[1])}; at $10–20 it's ${pct(pr[3])}.</li>
     <li><b>Treat localization as a basic.</b> Games with Chinese support succeed ${pct(zh.hit_with)} of the time; without it, ${pct(zh.hit_without)}.</li>
     <li><b>Good reviews are only the ticket in.</b> Beyond quality, work out how players will find you.</li></ol>
-    <p class="sumnote">These are correlations, not causes. Success = at least 500 Steam reviews; scope is tagged games released 2018–2024. Scroll up to return to the map.</p></div>`);
+    <p class="sumnote">These are correlations, not causes. Success = at least 500 Steam reviews; when tags are compared, each game is judged against games released the same year; scope is tagged games released 2018–2024. Scroll up to return to the map.</p></div>`);
 }
 const M = (() => {
   const $ = id => document.getElementById(id);
@@ -1825,7 +1928,7 @@ const M = (() => {
   const TW = 192, TH = 96, DIST = 4.2, FLOOR = -0.72, TOP = 0.72, XL = 1.15, ZL = 0.85;
   const all = Object.keys(T);
   const NMAX = Math.max(...all.map(t => T[t].n)), LX0 = Math.log10(250), LX1 = Math.log10(NMAX * 1.25);
-  const YMAX = Math.ceil(Math.max(...all.flatMap(t => SM.map(m => m.f(T[t]) || 0))) * 1.04 / 0.05) * 0.05;   // one scale for all three, so switching shows real shifts
+  const YMAX = Math.ceil(Math.max(...all.flatMap(t => SM.map(m => m.f(T[t]) || 0))) * 1.04 / 0.05) * 0.05;   // one scale for both readings, so switching shows real shifts
   const rc = all.map(t => T[t].recent).filter(v => v != null), sc = all.map(t => T[t].score).filter(v => v != null).sort((a, b) => a - b);
   const ZMIN = Math.floor(Math.min(...rc) / 0.05) * 0.05, ZMAX = Math.ceil(Math.max(...rc) / 0.05) * 0.05;
   const SC0 = sc[Math.floor(sc.length * .03)], SC1 = sc[sc.length - 1], fillOf = v => .14 + .78 * clamp(((v ?? SC0) - SC0) / (SC1 - SC0));
@@ -1834,13 +1937,13 @@ const M = (() => {
   const byShare = all.slice().sort((a, b) => T[a].share.reviews - T[b].share.reviews);
   const balls = all.map(t => {
     const d = T[t], pr = byShare.indexOf(t) / all.length;
-    return { t, d, x: nx(d.n), y: ny(d.hit), z: nz(d.recent ?? .6), r: 0.021 + 0.05 * Math.sqrt(d.n / NMAX), fill: fillOf(d.score), cov: 1, css: cssVar(famColor(famOf(t))), a: d.covers.length ? d.covers[0].i : -1, next: -1, t0: 0, last: 0, mix: 0, swapSpin: 0,
+    return { t, d, x: nx(d.n), y: ny(adj(d)), z: nz(d.recent ?? .6), r: 0.021 + 0.05 * Math.sqrt(d.n / NMAX), fill: fillOf(d.score), cov: 1, css: cssVar(famColor(famOf(t))), a: d.covers.length ? d.covers[0].i : -1, next: -1, t0: 0, last: 0, mix: 0, swapSpin: 0,
       k: 0, dim: 0, dof: 0, la: 0, ph: Math.random() * 6.28, delay: Math.random(), tint: hex2(cssVar(famColor(famOf(t)))), sx: 0, sy: 0, w: 1, pr: 0, vis: false };
   });
   const byTag = Object.fromEntries(balls.map(b => [b.t, b]));
-  const score = b => b.d.hit * Math.log10(b.d.n);
+  const score = b => adj(b.d) * Math.log10(b.d.n);
   const ranked = balls.slice().sort((a, b) => score(b) - score(a));
-  let W = 0, H = 0, dpr = 1, raf = 0, q = 0, g = 0, lastY = scrollY, uy = 0, up = 0, vy = 0, openK = 0, axesK = 0, zoomK = 0, hover = null, lockT = 0, conDelay = 0, nextSwap = 0, labelT = 0, labelSet = new Set(), links = [], last = 0, tNow = 0, axisFade = 1, insetK = 0, minW = 0, maxW = 1, spot = null, frontT = 0, tS = 0, turn = 0, ballSpin = 0, hoverAt = 0, lastHover = null, zoom = 1, zoomT = 1, fx = 0, fy = 0, fz = 0, ftx = 0, fty = 0, ftz = 0, gK = 0, frontOn = false, mk = 'r', vwE = 0, keep = null;
+  let W = 0, H = 0, dpr = 1, raf = 0, q = 0, g = 0, lastY = scrollY, uy = 0, up = 0, vy = 0, openK = 0, axesK = 0, zoomK = 0, hover = null, lockT = 0, conDelay = 0, nextSwap = 0, labelT = 0, labelSet = new Set(), links = [], last = 0, tNow = 0, axisFade = 1, insetK = 0, minW = 0, maxW = 1, spot = null, frontT = 0, tS = 0, turn = 0, ballSpin = 0, hoverAt = 0, lastHover = null, zoom = 1, zoomT = 1, fx = 0, fy = 0, fz = 0, ftx = 0, fty = 0, ftz = 0, gK = 0, frontOn = false, mk = 'a', vwE = 0, keep = null, aimB = [];
   const { REST_END, ROT_END, FIND_T } = PH, FIND_STEP = PACE.dist.finding, SUM_T = FIND_T + FIND_STEP * FINDINGS.length, FADE = FIND_STEP * .15, cards = new Map();
   const SLOTS = 24, loaded = new Uint8Array(NSMALL + ASSET.extra.length), imgs = new Array(NSMALL + ASSET.extra.length), slotOf = new Map(), slotOwner = new Array(SLOTS).fill(-1);
   let slotNext = 0;
@@ -1849,6 +1952,8 @@ const M = (() => {
   const beats = [...document.querySelectorAll('.beat3')].map(n => ({ n, w: n.dataset.w.split(',').map(Number) }));
 
   const NEAR = DIST - 2.6, FAR = DIST + 2.6, d01 = w => clamp((w - NEAR) / (FAR - NEAR));
+  // One window decides when the map is handled by the reader: the zoom UI, the zoom gate and the input handlers all read it.
+  const camGate = t => clamp((t / REST_T - .62) / .18) * (1 - clamp((t - (ROT_END - .25)) / .2));
   let ribbon = null, vaoB = null, vaoR = null, rbuf = null, rdata = new Float32Array(120000), rcount = 0, uTime = null;
   function initGL() {
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s)); return s; };
@@ -1982,6 +2087,27 @@ const M = (() => {
     const to = pickGame(best); if (to >= 0) startSwap(best, to, now);
   }
   const visibleTag = t => state.showOutcome || !T[t].outcome;
+  // What the view frames when a tag is selected: the tag, its five closest links, then every other link that still fits.
+  // Chosen once per selection, in map coordinates, so turning the view never reshuffles the group.
+  function aimSet() {
+    const sel = state.locked && byTag[state.locked];
+    if (!sel) return [];
+    const list = sel.d.cotags.map(c => byTag[c.tag]).filter(b => b && visibleTag(b.t));
+    const un = b => [b.x / XL, ny(succ(b.d, mk)) / TOP, b.z / ZL];
+    const far = b => { const a = un(b), c = un(sel); return Math.hypot(a[0] - c[0], a[1] - c[1], a[2] - c[2]); };
+    const set = [sel, ...list.slice().sort((x, y) => far(x) - far(y)).slice(0, 5)];
+    const half = extra => {
+      let h = 0;
+      for (let i = 0; i < 3; i++) {
+        let lo = 9, hi = -9;
+        for (const b of set) { const v = un(b)[i]; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+        const v = un(extra)[i]; h = Math.max(h, (Math.max(hi, v) - Math.min(lo, v)) / 2);
+      }
+      return h;
+    };
+    for (const b of list) if (!set.includes(b) && half(b) <= .45) set.push(b);   // a link far outside the group is left off the frame, not the map
+    return set;
+  }
   function drawAxes(now, e) {
     u.clearRect(0, 0, W, H); const base = .5 * g * axisFade;
     const line = (a, b, al) => { const p = P(...a), r = P(...b); u.globalAlpha = al; u.beginPath(); u.moveTo(p[0], p[1]); u.lineTo(r[0], r[1]); u.stroke(); };
@@ -1998,19 +2124,39 @@ const M = (() => {
     for (let v = 0; v <= YMAX + 1e-9; v += .1) { const y = ny(v); line([-xc, y, -zc], [xc, y, -zc], base * (.3 + axesK * .5)); line([-xc, y, -zc], [-xc, y, zc], base * (.3 + axesK * .5) * e); tick(pct(v), [-xc - out, y, -zc - outz]); }
     for (let v = Math.ceil(ZMIN * 10) / 10; v <= ZMAX + 1e-9; v += .1) { const z = nz(v); line([-XL, FLOOR, z], [XL, FLOOR, z], base * e * (.35 + axesK * .6)); if (e > .3) tick(pct(v), [xc + out, FLOOR - .05, z]); }
     // an arrow along each axis, pointing the true direction on screen
+    // An arrow that does not fit on screen (zoomed in, a tag framed, the axis seen end-on) is not dropped: it moves to a small compass.
+    const lost = [], vwNow = vwE || W, vhNow = cy / .54 || H;
     const arrow = (a, b, text, al) => {
-      const p = P(...a), r = P(...b), dx = r[0] - p[0], dy = r[1] - p[1], len = Math.hypot(dx, dy); if (len < 26 || r[0] < 24 || r[0] > W - 24 || r[1] < 24 || r[1] > H - 24 || p[1] > H - 8 || p[0] < 8 || p[0] > W - 8) return;
+      const p = P(...a), r = P(...b), dx = r[0] - p[0], dy = r[1] - p[1], len = Math.hypot(dx, dy);
+      if (len < 26 || r[0] < 24 || r[0] > vwNow - 24 || r[1] < 24 || r[1] > vhNow - 24 || p[1] > vhNow - 8 || p[0] < 8 || p[0] > vwNow - 8 || (r[0] < uiW && r[1] < topSafe)) { if (len > 2 && al > .02) lost.push({ ux: dx / len, uy: dy / len, L: len < 26 ? 20 : 40, text, al }); return; }
       const ux = dx / len, uy2 = dy / len, k = clamp((len - 26) / 40) * al;
       u.globalAlpha = k; u.strokeStyle = cssVar('--ink2'); u.fillStyle = cssVar('--ink2'); u.lineWidth = 1.6; u.beginPath(); u.moveTo(p[0], p[1]); u.lineTo(r[0], r[1]); u.stroke();
       u.beginPath(); u.moveTo(r[0] + ux * 9, r[1] + uy2 * 9); u.lineTo(r[0] - uy2 * 5, r[1] + ux * 5); u.lineTo(r[0] + uy2 * 5, r[1] - ux * 5); u.closePath(); u.fill();
       u.fillStyle = cssVar('--ink'); u.font = '12px "Microsoft YaHei",sans-serif'; u.textAlign = ux > .35 ? 'left' : ux < -.35 ? 'right' : 'center';
       const tw2 = u.measureText(text).width, lx = r[0] + ux * 16, tx2 = u.textAlign === 'left' ? Math.min(lx, W - tw2 - 8) : u.textAlign === 'right' ? Math.max(lx, tw2 + 8) : clamp(lx, tw2 / 2 + 8, W - tw2 / 2 - 8);
-      u.fillText(text, tx2, clamp(r[1] + uy2 * 16 + (Math.abs(uy2) > .7 ? (uy2 < 0 ? -2 : 10) : 4), 14, H - 8));
+      const ty2 = clamp(r[1] + uy2 * 16 + (Math.abs(uy2) > .7 ? (uy2 < 0 ? -2 : 10) : 4), tx2 < uiW ? topSafe : 14, H - 8);
+      u.strokeStyle = '#0d0d0d'; u.lineWidth = 4; u.lineJoin = 'round'; u.strokeText(text, tx2, ty2); u.fillText(text, tx2, ty2);
     };
-    const fy = FLOOR - .02, xz = zc + outz * .9, zx = xc + out * .9, al = g * axisFade;
+    // titles stay clear of the controls along the top, and step outward when the tick labels appear on the same edge
+    const uiBox = $('mapctl').getBoundingClientRect(), uiA = +$('ui3').style.opacity || 0, topSafe = 14 + Math.max(0, uiBox.bottom + 6) * uiA, uiW = uiBox.right + 40;
+    const fy = FLOOR - .02, xz = zc + outz * (.9 + 1.5 * axesK), zx = xc + out * (.9 + 1.7 * axesK), al = g * axisFade;
     arrow([-XL * .3, fy, xz], [XL * .3, fy, xz], w('同类游戏越多'), al);
     arrow([-xc - out * 3, TOP * .45, -zc - outz * 3], [-xc - out * 3, TOP * .95, -zc - outz * 3], w('越容易成功') + ' · ' + smOf(mk).t, al);
     arrow([zx, fy, -ZL * .3], [zx, fy, ZL * .3], tx('2022 年后的新作越多', 'More released since 2022'), al * e);
+    if (lost.length) {
+      // a key at the bottom-right of the visible map: one row per missing title, its arrow drawn at the angle that axis has on screen right now
+      u.font = '12px "Microsoft YaHei",sans-serif'; u.textAlign = 'left';
+      const tw = Math.max(...lost.map(l => u.measureText(l.text).width)), rh = 24, bw = tw + 58, bh = lost.length * rh + 12;
+      const bx = Math.max(insetK + 8, vwNow - bw - 16), by = vhNow - bh - 50, top = Math.max(...lost.map(l => l.al));
+      u.globalAlpha = .7 * top; u.fillStyle = '#0d0d0d'; u.beginPath(); u.roundRect(bx, by, bw, bh, 10); u.fill();
+      u.globalAlpha = .5 * top; u.strokeStyle = cssVar('--axis'); u.lineWidth = 1; u.stroke();
+      lost.forEach((l, i) => {
+        const mx = bx + 24, my = by + 6 + rh * i + rh / 2, h = l.L / 4 + 2, ex = mx + l.ux * h, ey = my + l.uy * h;
+        u.globalAlpha = l.al; u.strokeStyle = cssVar('--ink2'); u.fillStyle = cssVar('--ink2'); u.lineWidth = 1.6; u.beginPath(); u.moveTo(mx - l.ux * h, my - l.uy * h); u.lineTo(ex, ey); u.stroke();
+        u.beginPath(); u.moveTo(ex + l.ux * 6, ey + l.uy * 6); u.lineTo(ex - l.uy * 4, ey + l.ux * 4); u.lineTo(ex + l.uy * 4, ey - l.ux * 4); u.closePath(); u.fill();
+        u.fillStyle = cssVar('--ink'); u.fillText(l.text, bx + 46, my + 4);
+      });
+    }
     u.globalAlpha = 1;
   }
   function drawLinks(now) {
@@ -2169,8 +2315,8 @@ const M = (() => {
     if (!dragging) { uy += vy; vy *= .93; }
     tS += (tNow - tS) * (motion ? .16 : 1);
     // One rule for the whole ending: the view only ever turns one way. A full turn, then one more split into a step per finding.
-    const rot = clamp((tS - REST_END) / (ROT_END - REST_END)), uk = 1 - clamp((tS - ROT_END) / .5), zk = 1 - clamp((tS - REST_END) / .4), ek = motion ? .12 : 1;
-    zoom += (1 + (zoomT - 1) * zk - zoom) * ek; fx += (ftx * zk - fx) * ek; fy += (fty * zk - fy) * ek; fz += (ftz * zk - fz) * ek;
+    const rot = clamp((tS - REST_END) / (ROT_END - REST_END)), uk = 1 - clamp((tS - ROT_END) / .5), zk = camGate(tS), ek = motion ? .12 : 1;
+    if (camGate(tNow) < .5 && zoomT > 1.001) release();   // scrolling out of the map hands the camera back to the story
     turn = turnAt(tS);
     ballSpin = -turn * 2.5;   // every ball rolls the same way, in step with the view; covers face front again at each stop
     yaw = (-.62 + uy * uk) * e + turn; pitch = (.26 + up * uk) * e + Math.sin(rot * Math.PI) * .1;
@@ -2178,7 +2324,21 @@ const M = (() => {
     insetK += (inset - insetK) * (motion ? .12 : 1);
     const vw = narrow ? W : W - pw * openK, vh = narrow ? H * (1 - .6 * openK) : H, span = vw - insetK;
     cx = insetK + span / 2; cy = vh * .54; f0 = Math.min(span / 2.75, vh / 1.85) * DIST; vwE = vw;
-    mk = tNow > REST_END ? 'r' : state.sm;   // the guided ending always speaks in reviews, like its findings
+    // A selected tag owns the camera: its group sits in the middle of whatever space the panel leaves, as large as it fits.
+    let tz = zoomT, tfx = ftx, tfy = fty, tfz = ftz;
+    if (state.locked && aimB.length && f0) {
+      let mx = 0, my = 0, mz = 0;
+      for (const b of aimB) { mx += b.x; my += b.y; mz += b.z; }
+      mx /= aimB.length; my /= aimB.length; mz /= aimB.length;
+      // measured round the turn axis, so dragging the view never makes the group breathe in and out
+      let hr = 0, hv = 0;
+      for (const b of aimB) { hr = Math.max(hr, Math.hypot(b.x - mx, b.z - mz) + b.r); hv = Math.max(hv, Math.abs(b.y - my) + b.r); }
+      const hy = hv * Math.cos(pitch) + hr * Math.abs(Math.sin(pitch)), u0 = f0 / DIST;   // u0: screen pixels per map unit at the focus depth
+      tz = clamp(Math.min(.47 * span / ((hr + .1) * u0), .45 * vh / ((hy + .08) * u0)), 1, 4.5);   // the spare margin is for the arcs
+      tfx = mx; tfy = my; tfz = mz;
+    }
+    zoom += (1 + (tz - 1) * zk - zoom) * ek; fx += (tfx * zk - fx) * ek; fy += (tfy * zk - fy) * ek; fz += (tfz * zk - fz) * ek;
+    mk = tNow > REST_END ? 'a' : state.sm;   // the guided ending always uses the year-adjusted rate, like its findings
     schedule(now);
     const active = state.locked, lens = state.lens, linkSet = new Set(active ? T[active].cotags.map(c => c.tag) : []);
     const grp = state.groupPreview || state.group, gset = grp ? new Set(groupTags(grp)) : null, gs = state.game && state.game.t ? byTag[state.game.t] : null, fset = fltSet();
@@ -2239,7 +2399,7 @@ const M = (() => {
     if (b !== hover) { if (hover && !b) keep = { b: hover, until: performance.now() + 900 }; hover = b; labelT = 0; frontT = 0; }
     conHover = l ? l.tag : (document.querySelector('tr.co:hover') ? conHover : null);
     cO.style.cursor = b || l ? 'pointer' : 'grab';
-    if (b) { const g2 = coverOf(b, b.a); showTip(e, `<b>${esc(b.t)}</b>${row(tx('成功率 · ', 'Success · ') + smOf(mk).t, pct(succ(b.d, mk), 1))}${row(w('游戏数'), fmt(b.d.n))}${row(w('中位好评率'), pct(b.d.score))}${row(tx('2022 年后发行', 'Released 2022+'), pct(b.d.recent))}${g2 ? row(w('球面'), esc(g2.n)) : ''}${note(w('点击深入'))}`); }
+    if (b) { const g2 = coverOf(b, b.a); showTip(e, `<b>${esc(b.t)}</b>${SM.map(m => row(tx('成功率 · ', 'Success · ') + m.t, pct(m.f(b.d), 1))).join('')}${row(w('游戏数'), fmt(b.d.n))}${row(w('中位好评率'), pct(b.d.score))}${row(tx('2022 年后发行', 'Released 2022+'), pct(b.d.recent))}${g2 ? row(w('球面'), esc(g2.n)) : ''}${note(w('点击深入'))}`); }
     else if (l) { const s = T[state.locked]; showTip(e, `<b>${esc(state.locked)} + ${esc(l.tag)}</b>${row(w('同时出现'), pct(l.share))}${row(w('组合游戏数'), fmt(l.n))}${row(w('组合成功率'), pct(l.hit, 1))}${row(esc(state.locked) + w(' 整体'), pct(s.hit, 1))}${note(w('点击跳到 ') + esc(l.tag))}`); }
     else hideTip();
   });
@@ -2250,14 +2410,17 @@ const M = (() => {
   });
   cO.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); const [mx, my] = local(e); zoomAt(Math.exp(-e.deltaY * (e.deltaMode === 1 ? .06 : .0025)), mx, my); }, { passive: false });
   // Zoom moves toward the ball nearest the pointer (or the selected one), a little more with every step.
+  function zlab() { $('zLbl').textContent = zoomT.toFixed(1) + '×'; }
+  function release() { zoomT = 1; ftx = fty = ftz = 0; zlab(); }
   function zoomAt(f, mx, my) {
+    if (camGate(tNow) < .5 || state.locked) return;   // with a tag selected the view frames the selection itself
     zoomT = clamp(zoomT * f, 1, 5);
     let tgt = null;
     if (mx != null) { let bd = 160; for (const b of balls) if (b.vis && b.dim < .9) { const d = Math.hypot(b.sx - mx, b.sy - my); if (d < bd) { bd = d; tgt = b; } } }
     else tgt = (state.game && byTag[state.game.t]) || (state.locked && byTag[state.locked]) || null;
     if (zoomT <= 1.001) { ftx = fty = ftz = 0; }
     else if (tgt && f > 1) { ftx += (tgt.x - ftx) * .4; fty += (tgt.y - fty) * .4; ftz += (tgt.z - ftz) * .4; }
-    $('zLbl').textContent = zoomT.toFixed(1) + '×'; kick();
+    zlab(); kick();
   }
   function fit(tags) {
     const bs = (tags || []).map(t => byTag[t]).filter(Boolean), mid = a => (Math.min(...a) + Math.max(...a)) / 2, half = a => (Math.max(...a) - Math.min(...a)) / 2;
@@ -2267,7 +2430,7 @@ const M = (() => {
       ftx = mid(xs); fty = mid(ys); ftz = mid(zs);
       zoomT = clamp(Math.min(XL / (Math.max(half(xs), half(zs) * .8) + .14), (TOP - FLOOR) / 2 / (half(ys) + .1)), 1, 3);
     }
-    $('zLbl').textContent = zoomT.toFixed(1) + '×'; kick();
+    zlab(); kick();
   }
   cO.addEventListener('pointerleave', () => { if (!dragging) { hover = null; hideTip(); } });
   const findEls = FINDINGS.map((f, i) => { const n = document.createElement('div'); n.className = 'finding'; n.innerHTML = tx(`<div class="fno">发现 ${i + 1} / ${FINDINGS.length}</div><div class="fbig">${f.big}</div><h3>${f.title}</h3><p>${f.body}</p>`, `<div class="fno">FINDING ${i + 1} / ${FINDINGS.length}</div><div class="fbig">${f.big}</div><h3>${f.title}</h3><p>${f.body}</p>`); $('finds').appendChild(n); return n; });
@@ -2285,7 +2448,7 @@ const M = (() => {
     }
     if ((state.locked || state.panelAll || state.group) && tNow > REST_END && Math.abs(tNow - state.lockAt) > .4) closeAll();
     if (state.pendingTag && q > .9 && tNow < REST_END) { const t = state.pendingTag; state.pendingTag = null; lock(t); }
-    const ui = clamp((q - .62) / .18) * (1 - clamp((tNow - (ROT_END - .25)) / .2)); $('ui3').style.opacity = ui; $('ui3').classList.toggle('live', ui > .5); $('zoomUI').classList.toggle('live', ui > .5); cO.style.pointerEvents = q > .55 && tNow < ROT_END ? 'auto' : 'none';
+    const ui = camGate(tNow); $('ui3').style.opacity = ui; $('ui3').classList.toggle('live', ui > .5); $('zoomUI').classList.toggle('live', ui > .5); cO.style.pointerEvents = q > .55 && tNow < ROT_END ? 'auto' : 'none';
     for (const b of beats) { const [a, c, d, e2] = b.w, i = clamp((q - a) / (c - a)), o2 = clamp((q - d) / (e2 - d)), v = i * (1 - o2); b.n.style.opacity = v; b.n.style.transform = `translateY(${(1 - i) * 30 - o2 * 30}px)`; b.n.style.filter = v < 1 ? `blur(${(1 - v) * 6}px)` : ''; }
     // findings: one at a time, each spotlights its balls and turns the camera to the angle that shows it
     let best = -1, bestV = .35;
@@ -2300,13 +2463,13 @@ const M = (() => {
   }
   return {
     init() { if (gl) initGL(); resize(); new ResizeObserver(() => { resize(); kick(); }).observe(cO.parentElement); addEventListener('scroll', onScroll, { passive: true }); onScroll(); loadCovers(); },
-    refresh() { labelT = 0; kick(); }, kick, turnAt, ensure, locate: t => { const b = byTag[t]; return b && { x: b.sx, y: b.sy, r: b.pr, vis: b.vis, topHit: (hit(b.sx, b.sy) || {}).t }; }, currentGame: t => byTag[t] ? byTag[t].a : -1,
-    onLock(opening) { lockT = performance.now(); conDelay = opening ? 300 : 0; labelT = 0; if (state.locked && zoomT > 1.05) { const b = byTag[state.locked]; ftx = b.x; fty = ny(succ(b.d)); ftz = b.z; } kick(); },
+    refresh() { labelT = 0; aimB = aimSet(); kick(); }, kick, turnAt, ensure, locate: t => { const b = byTag[t]; return b && { x: b.sx, y: b.sy, r: b.pr, vis: b.vis, topHit: (hit(b.sx, b.sy) || {}).t }; }, currentGame: t => byTag[t] ? byTag[t].a : -1,
+    onLock(opening) { lockT = performance.now(); conDelay = opening ? 300 : 0; labelT = 0; aimB = aimSet(); kick(); },
     zoomAt, fit,
     hoverTag(t) { const b = t ? byTag[t] || null : null; if (b !== hover) { hover = b; labelT = 0; frontT = 0; kick(); } },
-    focusTag(t, z) { const b = byTag[t]; if (!b) return; ftx = b.x; fty = ny(succ(b.d)); ftz = b.z; if (z) zoomT = Math.max(zoomT, z); $('zLbl').textContent = zoomT.toFixed(1) + '×'; kick(); },
+    focusTag(t, z) { const b = byTag[t]; if (!b) return; ftx = b.x; fty = ny(succ(b.d)); ftz = b.z; if (z) zoomT = Math.max(zoomT, z); zlab(); kick(); },
     phases: () => ({ REST_T, REST_END, ROT_END, FIND_T, FIND_STEP, SUM_T }),
-    state: () => ({ zoom, zoomT, focus: [fx, fy, fz], gK, frontOn, mk, turn, ballSpin, tS, t: tNow, spot: spot ? spot.size : 0, front: [...cards.keys()], dof: balls.filter(b => b.vis && b.dof > .5).length, rcount, q, g, gl: !!gl, ready, balls: balls.filter(b => b.vis).length, swapping: balls.filter(b => b.next >= 0).length, links: links.length, labels: labelSet.size, loaded: loaded.reduce((a, v) => a + v, 0), yaw, a: balls.map(b => b.a) }),
+    state: () => ({ zoom, zoomT, aim: aimB.length, focus: [fx, fy, fz], gK, frontOn, mk, turn, ballSpin, tS, t: tNow, spot: spot ? spot.size : 0, front: [...cards.keys()], dof: balls.filter(b => b.vis && b.dof > .5).length, rcount, q, g, gl: !!gl, ready, balls: balls.filter(b => b.vis).length, swapping: balls.filter(b => b.next >= 0).length, links: links.length, labels: labelSet.size, loaded: loaded.reduce((a, v) => a + v, 0), yaw, a: balls.map(b => b.a) }),
   };
 })();
 
@@ -2314,7 +2477,7 @@ function drawTable() {
   const rows = visibleTags().map(t => ({ name: t, ...T[t], fam: famOf(t).name, famKey: famOf(t).key }));
   const k = state.sortK, dir = state.sortDir;
   rows.sort((a, b) => (a[k] > b[k] ? 1 : a[k] < b[k] ? -1 : 0) * dir);
-  document.getElementById('tbody').innerHTML = rows.map(r => `<tr data-t="${esc(r.name)}"><td>${esc(r.name)}</td><td><span style="color:${famColor(FBY[r.famKey])}">${icon(r.famKey, 13)}</span> ${r.fam}</td><td>${fmt(r.n)}</td><td>${pct(r.hit, 1)}</td><td>${pct(r.score)}</td><td>${pct(r.recent)}</td><td>$${r.price.toFixed(2)}</td><td>${pct(r.zh)}</td></tr>`).join('');
+  document.getElementById('tbody').innerHTML = rows.map(r => `<tr data-t="${esc(r.name)}"><td>${esc(r.name)}</td><td><span style="color:${famColor(FBY[r.famKey])}">${icon(r.famKey, 13)}</span> ${r.fam}</td><td>${fmt(r.n)}</td><td>${pct(r.hit_adj, 1)}</td><td>${pct(r.hit, 1)}</td><td>${pct(r.score)}</td><td>${pct(r.recent)}</td><td>$${r.price.toFixed(2)}</td><td>${pct(r.zh)}</td></tr>`).join('');
 }
 document.querySelector('thead').addEventListener('click', e => { const k = e.target.dataset.k; if (!k) return; state.sortDir = state.sortK === k ? -state.sortDir : (k === 'name' ? 1 : -1); state.sortK = k; drawTable(); });
 document.getElementById('tbody').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) lock(tr.dataset.t); });
@@ -2326,6 +2489,14 @@ document.getElementById('reset').addEventListener('click', () => { clearGame(tru
 document.getElementById('showOutcome').addEventListener('change', e => { state.showOutcome = e.target.checked; if (!state.showOutcome && state.locked && T[state.locked].outcome) state.locked = null; drawFactionChips(); drawTour(); fillList(); drawTable(); drawMapCtl(); drawMain(); drawLinked(); });
 
 document.getElementById('uN').textContent = fmt(DATA.meta.universe);
+document.getElementById('noteAxis').innerHTML = tx('<b>三维星图</b>：横轴 = 游戏数（对数），纵轴 = 成功率（默认和同年发行的游戏比，可切换为直接统计），纵深 = 2022 年后发行的占比；球的大小 = 游戏数，球的外圈颜色 = 阵营。球面从该标签的代表作开始，按评价数加权随机轮换。代表作、封面拼图、评价最多的游戏和开发商榜都取自<b>全部年份</b>，其余指标只算 2018–2024。',
+  '<b>3D map</b>: horizontal = number of games (log), vertical = success rate (judged against same-year games by default; the simple count is one click away), depth = share released since 2022; ball size = number of games, rim colour = faction. Each ball starts on its best-known game and rotates through the others, weighted by review count. Cover art, the mosaic, and the most-reviewed games and developers come from <b>all years</b>; every other figure covers 2018–2024 only.');
+document.getElementById('noteAdj').innerHTML = tx(`<b>为什么要“和同年游戏比”</b>：一款 2018 年的游戏已经积累了 7 年评价，2024 年的只有 1 年多（有标签游戏的逐年成功率从 ${pct(B.yrate[0], 1)} 降到 ${pct(B.yrate[6], 1)}），所以新作多的标签直接统计出来天然偏低。算法：先算"如果它每个发行年份的表现都等于当年有标签游戏的平均，成功率会是多少"（预期），再用 实际 ÷ 预期 × 基准 ${pct(B.hit, 1)}。这样只扣掉发行年份这一个因素，纵深轴（新作占比）因此不再和高度纠缠。`,
+  `<b>Why “vs. same-year games”</b>: a 2018 game has had seven years to collect reviews, a 2024 game barely one (the yearly success rate of tagged games falls from ${pct(B.yrate[0], 1)} to ${pct(B.yrate[6], 1)}), so tags full of recent games look worse than they are. The calculation asks what a tag's success rate would be if each of its release years did exactly as well as the average tagged game of that year (expected), then reports actual ÷ expected × the ${pct(B.hit, 1)} baseline. It removes release year and nothing else, so depth (share of recent games) no longer leaks into height.`);
+document.getElementById('noteCI').innerHTML = tx(`<b>小样本</b>：功能有/无对比和标签组合的门槛是 30 款。成功率 25%、30 款游戏时，95% 置信区间约为 ±15 个百分点，所以表格里给出区间，不足 ${THIN_N} 款的行变淡。`,
+  `<b>Small samples</b>: feature comparisons and tag pairs need only 30 games. At a 25% success rate, 30 games give a 95% interval of about ±15 points, so the tables print the interval and fade rows under ${THIN_N} games.`);
+document.getElementById('noteLack').innerHTML = tx('<b>这份数据回答不了的</b>：数据集里没有愿望单数、首周销量、发售前后的评价增长速度，也没有真实销量（持有量是 SteamSpy 的粗区间）。所以这里的"成功"只能是累计评价数，不能回答"上线第一个月卖得怎么样"；流水估算取持有量区间上限 × 原价，只适合看量级。',
+  '<b>What this data cannot answer</b>: the dataset has no wishlist counts, no first-week sales, no review velocity around launch, and no real sales figures (owners are coarse SteamSpy bands). "Success" here can only mean lifetime review count; it says nothing about a launch month. Gross estimates take the top of the owner band × list price and are good for orders of magnitude only.');
 document.getElementById('untag').textContent = pct(B.untagged_share);
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 translateStatic();
@@ -2364,6 +2535,8 @@ addEventListener('keydown', e => {
   if (!document.getElementById('ui3').classList.contains('live')) return;
   if (e.key === '+' || e.key === '=') M.zoomAt(1.3); else if (e.key === '-' || e.key === '_') M.zoomAt(1 / 1.3);
 });
+document.getElementById('skip').textContent = tx('跳过开场，直接看星图 →', 'Skip the intro, go to the map →');
+document.getElementById('skip').addEventListener('click', () => toBottom(false));
 if (location.hash === '#map') toBottom(false);
 else if (location.hash === '#select') scrollTo(0, document.getElementById('select').offsetTop);
 else { try { const y = sessionStorage.getItem('stm-y'); if (y) { sessionStorage.removeItem('stm-y'); scrollTo(0, +y); } } catch (e) {} }

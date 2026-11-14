@@ -2,18 +2,17 @@
 
 Usage: python export.py clean.pkl dash.json
 """
-import sys, json, pandas as pd, numpy as np
+import sys, os, json, pandas as pd, numpy as np
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from derive import derive
 
 pkl, out = sys.argv[1:3]
 df = pd.read_pickle(pkl)
 df['list_price'] = np.where(df.discount.between(1, 99), df.price / (1 - df.discount / 100), df.price)
 df['hit'] = df.reviews >= 500
-# Two more ways to count success, taking every game's owner count at the top of its SteamSpy band (an upper bound).
-OWN_T, GROSS_T = 200_000, 1_000_000
+# Success has one definition (>= 500 reviews). Owner counts are coarse SteamSpy bands, so the owner- and gross-based
+# definitions tracked it closely (r = 0.84-0.88 across tags) without adding information; only the gross estimate is kept, for reference.
 df['gross'] = df.owners_hi * df.list_price                     # upper-bound gross revenue before Steam's cut
-df['hit_o'] = df.owners_hi >= OWN_T
-df['hit_g'] = df.gross >= GROSS_T
-df['rev_idx'] = df.reviews * df.list_price          # relative revenue proxy, only meaningful as a share
 df['play_h'] = np.where(df.med_play > 0, df.med_play / 60, np.nan)
 
 YEARS = list(range(2010, 2026))
@@ -108,11 +107,8 @@ def summary(u, allyears, totals):
         feats[k] = {'share': r4(has.mean()),
                     'hit_with': r4(w.hit.mean()) if len(w) >= 30 else None,
                     'hit_without': r4(wo.hit.mean()) if len(wo) >= 30 else None}
-    on_sale = u[u.list_price > 0].discount.fillna(0) > 0
     return {
         'n': int(len(u)), 'hit': r4(u.hit.mean()), 'hits': int(u.hit.sum()),
-        'hit_o': r4(u.hit_o.mean()), 'hit_g': r4(u.hit_g.mean()),
-        'own_med': None if u.owners_hi.isna().all() else int(u.owners_hi.median()),
         'gross_med': None if u.gross.isna().all() else int(u.gross.median()),
         'gross_p90': None if u.gross.isna().all() else int(u.gross.quantile(.9)),
         'score': r4(s.median()) if len(s) else None,
@@ -120,11 +116,10 @@ def summary(u, allyears, totals):
         'price': round(float(u.list_price.median()), 2), 'zh': r4(u.zh.mean()),
         # overview
         'year': yearly(allyears),
-        'rev_b': dist(u.rb, RB[1]), 'own_b': dist(u.ob, OB[1]),
+        'rev_b': dist(u.rb, RB[1]),
         'price_b': rate(u, 'pb', PB[1]), 'lang_b': rate(u, 'lb', LB[1]),
         # market
         'share': {'games': r4(len(u) / totals['games']), 'reviews': r4(u.reviews.sum() / totals['reviews']),
-                  'revenue': r4(u.rev_idx.sum() / totals['revenue']), 'ccu': r4(u.peak_ccu.sum() / totals['ccu']),
                   'hits': r4(u.hit.sum() / totals['hits'])},
         'conc': {'top1': r4(rev_sorted.iloc[:1].sum() / tot_rev), 'top10': r4(rev_sorted.iloc[:10].sum() / tot_rev),
                  'top10pct': r4(rev_sorted.iloc[:k10].sum() / tot_rev), 'zero': r4((u.reviews == 0).mean())},
@@ -133,8 +128,7 @@ def summary(u, allyears, totals):
         'pstat': {'p25': r4(paid.quantile(.25)) if len(paid) else None, 'p50': r4(paid.median()) if len(paid) else None,
                   'p75': r4(paid.quantile(.75)) if len(paid) else None,
                   'hit_p50': r4(u[u.hit & (u.list_price > 0)].list_price.median()) if u.hit.sum() else None,
-                  'free': r4((u.list_price == 0).mean()), 'on_sale': r4(on_sale.mean()) if len(on_sale) else None,
-                  'disc': r4(u[(u.list_price > 0) & (u.discount > 0)].discount.median() / 100) if (u.discount > 0).any() else None,
+                  'free': r4((u.list_price == 0).mean()),
                   'rev_med_hit': int(u[u.hit].reviews.median()) if u.hit.sum() else None},
         # players & quality
         'score_b': dist(u.sb.dropna(), SB[1]) if u.sb.notna().any() else [0] * 5,
@@ -154,7 +148,7 @@ def summary(u, allyears, totals):
 
 tagged = df[df.tags.map(len) > 0]
 U = tagged[(tagged.year >= 2018) & (tagged.year <= 2024)]
-totals = {'games': len(U), 'reviews': U.reviews.sum(), 'revenue': U.rev_idx.sum(), 'ccu': max(1, U.peak_ccu.sum()), 'hits': max(1, U.hit.sum())}
+totals = {'games': len(U), 'reviews': U.reviews.sum(), 'hits': max(1, U.hit.sum())}
 base = summary(U, df, totals)
 base['wall'] = covers(df[df.year == 2024], 160)
 base['untagged_share'] = r4((df[(df.year >= 2018) & (df.year <= 2024)].tags.map(len) == 0).mean())
@@ -163,6 +157,8 @@ base['untagged_share'] = r4((df[(df.year >= 2018) & (df.year <= 2024)].tags.map(
 TY = tagged[tagged.year.isin(SHARE_YEARS)]
 year_n = TY.groupby('year').size().reindex(SHARE_YEARS, fill_value=0)
 year_h = TY.groupby('year').hit.sum().reindex(SHARE_YEARS, fill_value=0)
+# the yearly baseline every tag's success rate is adjusted against (tagged games only, like base.hit)
+base['year_t'] = {'n': year_n.astype(int).tolist(), 'hits': year_h.astype(int).tolist()}
 
 eU = U[['appid', 'tags', 'hit']].explode('tags')
 counts = eU.tags.value_counts()
@@ -192,9 +188,9 @@ for t in keep:
     d['cotags'] = [{'tag': k, 'n': int(r['size']), 'share': r4(r['size'] / len(u)), 'hit': r4(r['mean'])} for k, r in co.iterrows()]
     tags[t] = d
 
-json.dump({'base': base, 'tags': tags,
+json.dump(derive({'base': base, 'tags': tags,
            'labels': {'price': PB[1], 'lang': LB[1], 'rev': RB[1], 'own': OB[1], 'score': SB[1], 'years': YEARS,
                       'share_years': SHARE_YEARS, 'feats': list(FEATS)},
-           'meta': {'own_t': OWN_T, 'gross_t': GROSS_T, 'cdn': CDN, 'snapshot': '2026-03', 'universe': int(len(U))}},
+           'meta': {'cdn': CDN, 'snapshot': '2026-03', 'universe': int(len(U))}}),
           open(out, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print(len(tags), 'tags; baseline hit', base['hit'])
