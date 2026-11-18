@@ -59,6 +59,9 @@ scripts/*.py               data pipeline (see below)
 tag_families.csv           tag → faction mapping (hand-edited)
 data/dash_offline.json     per-tag aggregates, ready to build
 data/assets.json           embedded covers (WebP, base64)
+data/games.json            per-game table for ad-hoc queries (tag combos, plans, similar games)
+scripts/db.js              in-browser query engine over data/games.json
+scripts/test_db.js         parity test: db.js must reproduce the per-tag aggregates
 steam_eda_report.md        first-round exploratory analysis (Chinese)
 tag_stats.csv, charts/     static EDA outputs
 ```
@@ -78,7 +81,9 @@ The full pipeline from raw data (Python 3.12, `pip install -r requirements.txt`)
 3. `python scripts/export.py clean.pkl dash.json` builds per-tag aggregates for tags with ≥ 300 games from 2018–2024: success rates (all three definitions), market share, pricing, playtime, features, competition, co-tags, and top games.
 4. `python scripts/families.py dash.json tag_families.csv` drafts the faction mapping. **Skip this step** if you want to keep the hand-edited `tag_families.csv`.
 5. `python scripts/covers.py dash.json covers_cache data/dash_offline.json data/assets.json` downloads covers once from the Steam CDN, caches them, shrinks them, and replaces URLs with asset indices. This is the only step that touches the network.
-6. Run `build.py` as above.
+6. `python scripts/export_games.py clean.pkl data/dash_offline.json data/games.json` writes the per-game table: every tagged game (83k), with columns as base64 typed arrays and success flags computed once in Python. It reads thresholds, outcome tags and cover indices from `dash_offline.json`, so run it after step 5.
+7. `node scripts/test_db.js data/games.json data/dash_offline.json` checks that `scripts/db.js` reproduces every per-tag aggregate (n, three success rates, price and language buckets, features, playtime, yearly share). Run it whenever `export.py`, `export_games.py` or `db.js` changes.
+8. Run `build.py` as above. The games table and `db.js` are inlined only where the template contains `__GAMES__` and `__FILE:db.js__`.
 
 Optional EDA: `scripts/overview.py`, `scripts/tags.py clean.pkl tag_stats.csv`, and `scripts/charts.py clean.pkl tag_stats.csv charts`.
 

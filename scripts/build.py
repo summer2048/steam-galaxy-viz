@@ -1,17 +1,36 @@
 """Build the single-file, fully offline page.
 
-Usage: python scripts/build.py scripts/template.html data/dash_offline.json data/assets.json steam_tag_dashboard.html
-The faction mapping is read from ../tag_families.csv (edit that file to move a tag to another faction).
+Usage: python scripts/build.py scripts/template.html data/dash_offline.json data/assets.json steam_tag_dashboard.html [data/games.json]
+
+Placeholders in the template:
+  __DATA__ __ASSETS__ __FAMILIES__ __I18N__   per-tag aggregates, covers, tag -> faction (../tag_families.csv), translations
+  __GAMES__                                   per-game table (data/games.json), only read if the template uses it
+  __FILE:name__                               the contents of scripts/<name> (Studio code and styles)
+All placeholders are replaced in one pass, so text inside the data can never be mistaken for a placeholder.
 """
-import sys, os, csv, json
+import sys, os, re, csv, json
 
 tpl, data, assets, out = sys.argv[1:5]
+here = os.path.dirname(os.path.abspath(tpl))
+games = sys.argv[5] if len(sys.argv) > 5 else os.path.join(os.path.dirname(os.path.abspath(data)), 'games.json')
 html = open(tpl, encoding='utf-8').read()
-js = open(data, encoding='utf-8').read().replace('</', r'<\/')
-fam_csv = os.path.join(os.path.dirname(os.path.abspath(tpl)), '..', 'tag_families.csv')
-fams = {r['tag']: r['family'] for r in csv.DictReader(open(fam_csv, encoding='utf-8-sig'))}
-html = html.replace('__FAMILIES__', json.dumps(fams, ensure_ascii=False).replace('</', r'<\/'))
-i18n = os.path.join(os.path.dirname(os.path.abspath(tpl)), 'i18n_en.json')
-html = html.replace('__I18N__', json.dumps(json.load(open(i18n, encoding='utf-8')), ensure_ascii=False).replace('</', r'<\/'))
-html = html.replace('__ASSETS__', open(assets, encoding='utf-8').read())
-open(out, 'w', encoding='utf-8').write(html.replace('__DATA__', js))
+safe = lambda s: s.replace('</', r'<\/')   # nothing inlined may close the surrounding <script>
+read = lambda p: open(p, encoding='utf-8').read()
+
+def value(name):
+    if name == 'DATA': return safe(read(data))
+    if name == 'ASSETS': return read(assets)
+    if name == 'FAMILIES':
+        fams = {r['tag']: r['family'] for r in csv.DictReader(open(os.path.join(here, '..', 'tag_families.csv'), encoding='utf-8-sig'))}
+        return safe(json.dumps(fams, ensure_ascii=False))
+    if name == 'I18N': return safe(json.dumps(json.load(open(os.path.join(here, 'i18n_en.json'), encoding='utf-8')), ensure_ascii=False))
+    if name == 'GAMES': return safe(read(games))
+    if name.startswith('FILE:'):
+        src = read(os.path.join(here, name[5:]))
+        return src.replace('</script', r'<\/script')
+    raise KeyError(name)
+
+cache = {}
+html = re.sub(r'__(DATA|ASSETS|FAMILIES|I18N|GAMES|FILE:[\w.-]+)__', lambda m: cache.setdefault(m.group(1), value(m.group(1))), html)
+open(out, 'w', encoding='utf-8').write(html)
+print(out, round(os.path.getsize(out) / 1e6, 1), 'MB')
