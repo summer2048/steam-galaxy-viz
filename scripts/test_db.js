@@ -72,6 +72,16 @@ cmp('search', 'Slay the Spire', db.name(sts), 'Slay the Spire', 0);
 const sim = db.similar(sts, { k: 3 }).map(x => db.name(x.r));
 console.log('similar to Slay the Spire:', sim.join(' · '));
 
+// recommendations: seeds never come back, and the picks are named
+t0 = Date.now();
+const seeds = ['Slay the Spire', 'Hades', 'Stardew Valley'].map(q => db.search(q, 1)[0]);
+const recs = db.recommend(seeds, { tags: true, price: false, rating: true, gems: false });
+console.log(`recommend in ${Date.now() - t0} ms:`, recs.map(x => `${db.name(x.r)} (via ${db.name(seeds[x.best])}; ${x.shared.slice(0, 3).join(', ')})`).join(' | '));
+cmp('recommend', 'six picks', recs.length, 6, 0);
+cmp('recommend', 'no seeds', recs.filter(x => seeds.includes(x.r)).length, 0, 0);
+const gems = db.recommend(seeds, { tags: true, gems: true });
+console.log('with gems:', gems.map(x => `${db.name(x.r)} ${db.col.reviews[x.r]}rv`).join(' | '));
+
 if (fails.length) {
   console.log(`\nFAIL: ${fails.length} mismatches`); fails.slice(0, 40).forEach(f => console.log('  ' + f));
   process.exit(1);

@@ -283,6 +283,66 @@ const GameDB = (() => {
       for (const id of ids) { for (let j = tagOff[r], p = 0; j < tagOff[r + 1]; j++, p++) if (tagIds[j] === id) { s += 1 / (1 + p / 4); break; } }
       return ids.length ? s / ids.length : 0;
     }
+    // ---- recommendations for players ----
+    let idf = null, gemPool = null;
+    // rating shrunk toward a typical 80% with a prior worth 20 reviews: 54 reviews at 100% should not beat 150k at 98%
+    const srate = r => (C.pos[r] + 16) / (C.reviews[r] + 20);
+    const vecCache = new Map();
+    function tagVec(r) {   // tag -> weight: rarer tags and tags higher in Steam's vote order count more; outcome tags are skipped
+      const hitc = vecCache.get(r); if (hitc) return hitc;
+      if (!idf) { idf = new Float64Array(tagNames.length); for (let t = 0; t < tagNames.length; t++) idf[t] = Math.log(n / Math.max(1, postOff[t + 1] - postOff[t])); }
+      const v = new Map(); let W = 0;
+      for (let j = tagOff[r], p = 0; j < tagOff[r + 1]; j++, p++) { const t = tagIds[j]; if (outcome.has(t)) continue; const x = idf[t] / (1 + p / 4); v.set(t, x); W += x; }
+      const out = { v, W }; vecCache.set(r, out); return out;
+    }
+    function tagSim(a, b) {   // weighted Jaccard of two tagVecs
+      let mn = 0; for (const [t, x] of b.v) { const y = a.v.get(t); if (y) mn += Math.min(x, y); }
+      return mn ? mn / (a.W + b.W - mn) : 0;
+    }
+    const pctlOf = sorted => v => { let lo = 0, hi = sorted.length; while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < v) lo = m + 1; else hi = m; } return sorted.length ? lo / sorted.length : 0; };
+    /** Recommend games from a player's seed games.
+        dims: {tags, price, rating, gems} booleans. For each candidate and each seed, the enabled dimensions are scored
+        0..1 and averaged; the candidate's score is 0.75 x best seed + 0.25 x second best (agreement between seeds helps).
+        The final k are picked greedily with a diversity penalty so they are not all one subgenre. */
+    /** only: optional rows to choose from (e.g. one tag). With no seeds but `only`, the best rated of those rows. */
+    function recommend(seeds, dims = { tags: true, price: false, rating: true, gems: false }, k = 6, only = null) {
+      if (!gemPool) {
+        gemPool = filter(all(), r => C.reviews[r] >= 50 && (C.flags[r] >> SAFE) & 1);
+        const sortedOf = f => Float64Array.from(gemPool, f).sort();
+        gemPool.pPrice = pctlOf(sortedOf(r => price[r])); gemPool.pRate = pctlOf(sortedOf(srate));
+        gemPool.pRev = pctlOf(sortedOf(r => C.reviews[r]));
+      }
+      const P = gemPool, seedSet = new Set(seeds), seedNames = new Set(seeds.map(r => name(r)));
+      const S = seeds.map(r => ({ r, vec: tagVec(r), pp: P.pPrice(price[r]), pr: P.pRate(srate(r)) }));
+      const on = Object.keys(dims).filter(d => dims[d]);
+      const onlySet = only ? new Set(only) : null;
+      if (!on.length || (!S.length && !onlySet)) return [];
+      const cands = [];
+      for (let i = 0; i < P.length; i++) {
+        const r = P[i]; if (seedSet.has(r) || seedNames.has(name(r)) || (onlySet && !onlySet.has(r))) continue;
+        const vec = tagVec(r), pp = P.pPrice(price[r]), pr = P.pRate(srate(r)), prev = P.pRev(C.reviews[r]);
+        const gem = pr * (prev < .75 ? 1 : (1 - prev) / .25);   // well rated and not widely known (bottom 75% by reviews)
+        const per = S.length ? S.map(s => {
+          const d = { tags: tagSim(s.vec, vec), price: 1 - Math.abs(pp - s.pp), rating: pr >= s.pr ? 1 : 1 - (s.pr - pr), gems: gem };
+          return { d, score: on.reduce((a, k2) => a + d[k2], 0) / on.length };
+        }) : [{ d: { rating: pr, gems: gem }, score: dims.gems ? (pr + gem) / 2 : pr }];   // no seeds: best rated (or best gems) of `only`
+        const ord = per.map((p, j) => [p.score, j]).sort((a, b) => b[0] - a[0]);
+        const score = ord.length > 1 ? .75 * ord[0][0] + .25 * ord[1][0] : ord[0][0];
+        cands.push({ r, vec, score, best: ord[0][1], per, pr, pp, prev });
+      }
+      cands.sort((a, b) => b.score - a.score);
+      const top = cands.slice(0, 80), picks = [];
+      while (picks.length < k && top.length) {
+        let bi = 0, bv = -Infinity;
+        top.forEach((c, i) => { const red = picks.reduce((m, p) => Math.max(m, tagSim(c.vec, p.vec)), 0), v = c.score - .3 * red; if (v > bv) { bv = v; bi = i; } });
+        picks.push(top.splice(bi, 1)[0]);
+      }
+      return picks.map(c => {
+        const s = S[c.best], shared = !s ? [] : [...c.vec.v].filter(([t]) => s.vec.v.has(t)).sort((a, b) => Math.min(b[1], s.vec.v.get(b[0])) - Math.min(a[1], s.vec.v.get(a[0]))).map(([t]) => tagNames[t]);
+        return { r: c.r, score: c.score, best: c.best, seedScores: S.length ? c.per.map(p => p.score) : [], dims: c.per[c.best].d, shared,
+          gem: C.reviews[c.r] < 500 && ratio(c.r) >= .9, pctl: { price: c.pp, rating: c.pr, reviews: c.prev } };
+      });
+    }
     function game(r) {
       return { r, appid: C.appid[r], n: name(r), y: C.year[r], rv: C.reviews[r], p: ratio(r), c: price[r], ow: owners(r),
         h: playH(r), nl: C.nlang[r], i: C.cover[r] >= 0 ? C.cover[r] : null, tags: tagsOf(r),
@@ -297,7 +357,7 @@ const GameDB = (() => {
       return hits.slice(0, k).map(([r]) => r);
     }
     return { n, tags: tagNames, langs: raw.langs, feats: raw.feats, edges: EDGES, years: YEARS, shareYears: SHARE_YEARS, scope: SCOPE,
-      col: C, price, all, filter, withTags, where, rate, buckets, summarize, yshare, similar, search, market, oe, ratioCI, laneYears, companions, cohort, cohortBoot, interval, marketFor, prominence, bucketOf: (k, v) => bucketOf(EDGES[k], v), game, name, tagsOf, hit, ratio, playH, owners, inScope };
+      col: C, price, all, filter, withTags, where, rate, buckets, summarize, yshare, similar, search, market, oe, ratioCI, laneYears, companions, cohort, cohortBoot, interval, marketFor, prominence, recommend, tagSim, tagVec, bucketOf: (k, v) => bucketOf(EDGES[k], v), game, name, tagsOf, hit, ratio, playH, owners, inScope };
   }
   return { open, median, quantile, bucketOf };
 })();

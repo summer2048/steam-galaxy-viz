@@ -8,13 +8,18 @@ const Studio = (() => {
   const PRESETS = [['Card Game'], ['Deckbuilding', 'Rogue-lite'], ['Cozy', 'Farming Sim'], ['Survival', 'Open World'], ['Puzzle'], ['Visual Novel']];
   const S = { open: false, mode: 'dev', view: 'lane', combo: ['Card Game'], sm: 'r' };
   let DB = null, root = null, tagList = null, opener = null;
+  const DB_TAG_OK = t => !!T[t];
 
   const $ = id => document.getElementById(id);
   const def = () => DEFS[S.sm];
   const times = v => v == null || !isFinite(v) ? '—' : (v >= 10 ? v.toFixed(0) : v.toFixed(v >= 1 ? 2 : 2)) + '×';
   const pc = (v, d = 1) => v == null ? '—' : (v * 100).toFixed(v < .01 && v > 0 ? 2 : d) + '%';
+  const medianOf = v => !v.length ? null : v.length % 2 ? v[v.length >> 1] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2;   // v sorted
   const tagColor = t => T[t] ? famColor(famOf(t)) : 'var(--fam-other)';
   const coverSrc = i => i == null ? null : 'data:image/webp;base64,' + assetB64(i);
+  // embedded cover if the map has one; otherwise covers/<appid>.webp shipped next to the page; the name shows if neither loads
+  const coverHtml = g => g.i != null ? `<img src="${coverSrc(g.i)}" alt="" loading="lazy">`
+    : `<div class="ph">${esc(g.n)}</div><img src="covers/${g.appid}.webp" alt="" loading="lazy" onerror="this.remove()">`;
 
   function db() {
     if (!DB) DB = GameDB.open(JSON.parse($('gamesRaw').textContent));
@@ -33,7 +38,7 @@ const Studio = (() => {
         <div class="st-brand"><span class="kicker">${tx('Steam 标签地图', 'Steam tag map')}</span><b>Studio</b></div>
         <div class="st-seg" id="stMode" role="group" aria-label="${tx('模式', 'Mode')}">
           <button type="button" data-m="dev">${tx('我在做游戏', "I'm making a game")}</button>
-          <button type="button" data-m="player" disabled aria-describedby="stSoon">${tx('我在找游戏玩', "I'm looking for a game")} <small class="st-soon" id="stSoon">${tx('即将推出', 'coming soon')}</small></button></div>
+          <button type="button" data-m="player">${tx('我在找游戏玩', "I'm looking for a game")}</button></div>
         <div><span class="st-seg-l">${tx('成功 =', 'Success =')}</span><div class="st-seg" id="stSM" role="group">${SM.map(m => `<button type="button" data-k="${m.k}" title="${esc(m.s)}">${m.t}</button>`).join('')}</div></div>
       </header>
       <div class="st-wrap"><nav class="st-steps" id="stSteps"></nav><div id="stBody"></div></div>
@@ -50,12 +55,14 @@ const Studio = (() => {
     if (!root) build();
     if (opts.combo) S.combo = opts.combo.slice();
     if (opts.add && !S.combo.includes(opts.add)) S.combo.push(opts.add);
-    if (opts.view) S.view = opts.view;
+    if (opts.view === 'player') S.mode = 'player'; else if (opts.view) { S.view = opts.view; S.mode = 'dev'; }
     S.sm = opts.sm && DEFS[opts.sm] ? opts.sm : state.sm; S.open = true;
     if (!root.contains(document.activeElement)) opener = document.activeElement;
     document.body.classList.add('studio-open'); hideTip();
-    if (!DB) { $('stBody').innerHTML = `<div class="st-loading">${tx('正在载入 83,353 款游戏…', 'Loading 83,353 games…')}</div>`; setTimeout(() => { db(); if (S.open) render(); }, 30); }
-    else render();
+    if ('ptag' in opts) S.ptag = opts.ptag && DB_TAG_OK(opts.ptag) ? opts.ptag : null;
+    const go = () => { if (opts.seedAppids) S.seeds = opts.seedAppids.map(rowOfAppid).filter(r => r != null); if (opts.seedCover != null) { const r = rowOfCover(opts.seedCover); S.seeds = r == null ? [] : [r]; } S.pick = null; render(); };
+    if (!DB) { $('stBody').innerHTML = `<div class="st-loading">${tx('正在载入 83,353 款游戏…', 'Loading 83,353 games…')}</div>`; setTimeout(() => { db(); if (S.open) go(); }, 30); }
+    else go();
     root.focus && root.setAttribute('tabindex', '-1'); root.focus();
   }
   function close() {
@@ -64,7 +71,7 @@ const Studio = (() => {
     if (opener && opener.isConnected && opener.focus) opener.focus();
     opener = null;
   }
-  function syncHash() { if (S.open) history.replaceState(null, '', `#studio/${S.view}/${S.combo.map(encodeURIComponent).join('+')}/${S.sm}`); }
+  function syncHash() { if (S.open) history.replaceState(null, '', S.mode === 'player' ? `#studio/player/${S.seeds.map(r => DB.col.appid[r]).join('+')}/${S.sm}${S.ptag ? '/' + encodeURIComponent(S.ptag) : ''}` : `#studio/${S.view}/${S.combo.map(encodeURIComponent).join('+')}/${S.sm}`); }
 
   function render() {
     if (!DB) return;
@@ -74,7 +81,9 @@ const Studio = (() => {
     $('stSteps').innerHTML = steps.map(([v, t], i) => `<button type="button" data-v="${v}" class="${S.view === v ? 'on' : ''}" ><i>${i + 1}</i>${t}</button>`).join('');
     $('stTags').innerHTML = tagList.filter(t => !S.combo.includes(t)).map(t => `<option value="${esc(t)}">`).join('');
     syncHash();
-    if (S.view === 'plan') renderPlan(); else renderLane();
+    $('stSteps').style.display = S.mode === 'player' ? 'none' : '';
+    $('stSM').parentElement.style.display = S.mode === 'player' ? 'none' : '';   // success is a developer notion
+    if (S.mode === 'player') renderPlayer(); else if (S.view === 'plan') renderPlan(); else renderLane();
   }
 
   // ---------- step 1: pick a lane ----------
@@ -91,8 +100,10 @@ const Studio = (() => {
     const perf = all.n < 40 || all.O < 5 ? ['thin', tx('样本太少，难下结论', 'Too few games to judge')]
       : all.hi < 1 ? ['red', tx('低于大盘', 'Below the market')]
       : all.lo > 1 ? ['blue', tx('跑赢大盘', 'Beats the market')] : ['flat', tx('和大盘差不多', 'About the market')];
-    const crowd = last.share >= CROWDED ? ['red', growth >= 2 ? tx('拥挤，且还在变挤', 'Crowded and still filling up') : tx('拥挤', 'Crowded')]
-      : growth >= 2 ? ['fill', tx('不挤，但在变挤', 'Uncrowded, filling up fast')] : ['blue', tx('不挤', 'Uncrowded')];
+    // level (share of 2024 releases) plus direction (2022–24 vs 2018–20 average share), so a growing lane never reads as settled
+    const dir = growth >= 2 ? tx('快速变挤', 'filling up fast') : growth >= 1.25 ? tx('在变挤', 'getting busier') : growth <= .8 ? tx('在变空', 'thinning out') : tx('稳定', 'steady');
+    const crowd = last.share >= CROWDED ? ['red', tx(`拥挤 · ${dir}`, `Crowded · ${dir}`)]
+      : [growth >= 1.25 ? 'fill' : 'blue', tx(`不挤 · ${dir}`, `Uncrowded · ${dir}`)];
     return [perf, crowd];
   }
   function laneData(tags) {
@@ -163,7 +174,7 @@ const Studio = (() => {
   const PLAN_COL = ['var(--s1)', 'var(--accent)', 'var(--fam2)'];
   S.plans = [{ name: 'A', price: 3, lt: 1 }, { name: 'B', price: 2, lt: 0 }];
   S.active = 0;
-  const pTier = r => DB.bucketOf('price', DB.price[r]), lTier = r => DB.bucketOf('lang', DB.col.nlang[r]);
+  const pTier = r => DB.bucketOf('price', DB.price[r]), lTier = r => DB.col.nlang[r] ? DB.bucketOf('lang', DB.col.nlang[r]) : -1;   // games listing no language join no tier
   const planPred = p => r => pTier(r) === p.price && lTier(r) === p.lt;
   const SPARSE = 30;
   function renderPlan() {
@@ -173,9 +184,13 @@ const Studio = (() => {
     const est = S.plans.map(p => DB.cohort(rows, planPred(p), k)), lane = DB.cohort(rows, null, k), mk = DB.marketFor(rows, k);
     const boot = DB.cohortBoot(rows, [null, ...S.plans.map(planPred)], k);
     const iv = q => DB.interval(boot, x => x[q]);
-    // what if the active plan changed one thing: price with its languages held, languages with its price held
-    const ifPrice = PRICE_T().map((t, j) => ({ t, j, ...DB.cohort(rows, r => pTier(r) === j && lTier(r) === pl.lt, k) }));
-    const ifLang = LANG_T().map((t, j) => ({ t, j, ...DB.cohort(rows, r => pTier(r) === pl.price && lTier(r) === j, k) }));
+    // what if the active plan changed one thing: price with its languages held, languages with its price held.
+    // One paired bootstrap covers the plan and every alternative, so whiskers and suggested gains share one method.
+    const altP = PRICE_T().map((t, j) => r => pTier(r) === j && lTier(r) === pl.lt), altL = LANG_T().map((t, j) => r => pTier(r) === pl.price && lTier(r) === j);
+    const boot2 = DB.cohortBoot(rows, [planPred(pl), ...altP, ...altL], k, 10, rows.length > 8000 ? 150 : 300);
+    const alt = (t, j, q, pred) => { const c = DB.cohort(rows, pred, k), [lo, hi] = DB.interval(boot2, x => x[q]), [dlo, dhi] = DB.interval(boot2, x => x[q] - x[0]); return { t, j, ...c, lo, hi, dlo, dhi }; };
+    const ifPrice = PRICE_T().map((t, j) => alt(t, j, 1 + j, altP[j]));
+    const ifLang = LANG_T().map((t, j) => alt(t, j, 1 + PRICE_T().length + j, altL[j]));
     const name = S.combo.map(esc).join(' + ');
     body.innerHTML = `
       <div class="st-plan">
@@ -185,7 +200,7 @@ const Studio = (() => {
           <div class="st-f"><div class="st-fl">${tx('赛道', 'Lane')}</div><div class="st-lane">${S.combo.map(t => `<span class="st-chip" style="--fc:${tagColor(t)}">${esc(t)}</span>`).join('')}<button type="button" class="st-link" data-go="lane">${tx('修改', 'Change')}</button></div></div>
           <div class="st-f"><div class="st-fl">${tx('价格', 'Price')}</div><div class="st-pills">${PRICE_T().map((t, j) => `<button type="button" data-price="${j}" class="${pl.price === j ? 'on' : ''}">${t}</button>`).join('')}</div></div>
           <div class="st-f"><div class="st-fl">${tx('支持几种语言', 'How many languages')}</div><div class="st-pills col">${LANG_T().map((t, j) => `<button type="button" data-lt="${j}" class="${pl.lt === j ? 'on' : ''}">${t}<small>${LANG_EX()[j]}</small></button>`).join('')}</div></div>
-          <p class="st-note">${tx('只比较价格档和语言数：具体哪几种语言、游戏时长、发售年份都不参与计算。只有约 20% 的游戏有时长数据，而且几乎都是卖得好的；未来年份没有数据。', 'Only price tier and number of languages are compared. Which languages, playtime and launch year are left out: only about 20% of games have playtime data (almost all of them successful), and future years have no data.')}</p>
+          <p class="st-note">${tx('只比较价格档和语言数：具体哪几种语言、游戏时长、发售年份都不参与计算。只有约 20% 的游戏有时长数据，而且这些游戏的成功率远高于平均（46% 对约 1%）；未来年份没有数据。', 'Only price tier and number of languages are compared. Which languages, playtime and launch year are left out: only about 20% of games have playtime data, and those are far more successful than average (46% vs about 1%), and future years have no data.')}</p>
         </aside>
         <div class="st-main">
           <section class="st-card"><div class="st-hd"><h3>${tx('成功的机会', 'Chance of success')}</h3>
@@ -220,7 +235,8 @@ const Studio = (() => {
         return { lab: `${tx('方案', 'Plan')} ${p.name}`, sub: `${PRICE_T()[p.price]} · ${LANG_T()[p.lt]}`, col: PLAN_COL[i], ...est[i], lo, hi, plan: true, on: i === S.active }; }),
       (() => { const [lo, hi] = iv(0); return { lab: tx('整条赛道', 'Whole lane'), sub: S.combo.join(' + '), col: 'var(--ink2)', ...lane, lo, hi }; })(),
       { lab: tx('Steam 大盘', 'All of Steam'), sub: tx('同样的年份结构', 'same year mix'), col: 'var(--muted)', rate: mk, lo: null, hi: null, n: null }];
-    const max = Math.min(1, Math.max(.1, ...R.map(r => r.n === 0 ? 0 : (r.hi ?? r.rate ?? 0))) * 1.12), W = 640, rowH = 48, m = { l: 175, r: 165 }, H = R.length * rowH + 26;
+    const narrow = $('stOdds').clientWidth < 520;   // phones get a narrower drawing so labels stay readable
+    const max = Math.min(1, Math.max(.1, ...R.map(r => r.n === 0 ? 0 : (r.hi ?? r.rate ?? 0))) * 1.12), W = narrow ? 360 : 640, rowH = 48, m = narrow ? { l: 100, r: 108 } : { l: 175, r: 165 }, H = R.length * rowH + 26;
     const X = v => m.l + v / max * (W - m.l - m.r);
     let s = `<svg viewBox="0 0 ${W} ${H}">`;
     for (let v = 0; v <= max + 1e-9; v += max > .5 ? .2 : max > .25 ? .1 : .05) s += `<line x1="${X(v)}" x2="${X(v)}" y1="0" y2="${H - 20}" stroke="var(--grid)"/><text x="${X(v)}" y="${H - 4}" text-anchor="middle">${(v * 100).toFixed(0)}%</text>`;
@@ -256,21 +272,25 @@ const Studio = (() => {
     let s = `<svg viewBox="0 0 ${W} ${H}"><text x="${m.l}" y="12" class="lbl">${title}</text>`;
     B.forEach((b, j) => {
       const x = m.l + j * step + step * .16, bw = step * .68, thin = b.n < SPARSE, on = j === cur, col = on ? PLAN_COL[S.active] : 'var(--seq1)';
-      if (b.rate != null && b.n > 0) {
+      if (b.rate != null && b.n >= 10) {   // under 10 games the estimate is mostly the lane prior
         s += `<rect x="${x}" y="${Y(b.rate)}" width="${bw}" height="${H - m.b - Y(b.rate)}" rx="3" fill="${col}" opacity="${thin ? .25 : on ? 1 : .6}"><title>${b.t}: ${pc(b.rate)} · ${fmt(b.hits)}/${fmt(b.n)}</title></rect>`;
         if (!thin) s += `<line x1="${x + bw / 2}" x2="${x + bw / 2}" y1="${Y(b.lo)}" y2="${Y(b.hi)}" stroke="var(--ink2)" stroke-width="1.2"/>`;
         s += `<text x="${x + bw / 2}" y="${(thin ? Y(b.rate) : Math.min(Y(b.hi), Y(b.rate))) - 5}" text-anchor="middle" class="${on ? 'lbl' : ''}">${pc(b.rate, 0)}</text>`;
-      } else s += `<text x="${x + bw / 2}" y="${H - m.b - 6}" text-anchor="middle">—</text>`;
+      } else s += `<text x="${x + bw / 2}" y="${H - m.b - 6}" text-anchor="middle">${b.n ? tx('太少', 'few') : '—'}</text>`;
       s += `<text x="${x + bw / 2}" y="${H - m.b + 14}" text-anchor="middle" class="${on ? 'lbl' : ''}">${esc(b.t.replace(/ languages?$/, ''))}</text><text x="${x + bw / 2}" y="${H - m.b + 26}" text-anchor="middle" style="font-size:9.5px">n ${fmt(b.n)}</text>`;
     });
     $(id).innerHTML = s + `<line x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}" stroke="var(--axis)"/></svg>`;
   }
   function drawHint(ifPrice, ifLang, cur) {
-    const pl = S.plans[S.active], best = B => B.filter(b => b.n >= SPARSE).sort((a, b) => b.lo - a.lo)[0], bp = best(ifPrice), bl = best(ifLang), parts = [];
-    if (bp && bp.j !== pl.price && bp.rate > cur.rate) parts.push(tx(`把价格改到 <b>${bp.t}</b>：${pc(cur.rate)} → <b>${pc(bp.rate)}</b>（n ${fmt(bp.n)}）。`, `Move the price to <b>${bp.t}</b>: ${pc(cur.rate)} → <b>${pc(bp.rate)}</b> (n ${fmt(bp.n)}).`));
-    if (bl && bl.j !== pl.lt && bl.rate > cur.rate) parts.push(tx(`把语言改成 <b>${bl.t}</b>：${pc(cur.rate)} → <b>${pc(bl.rate)}</b>（n ${fmt(bl.n)}）。`, `Support <b>${bl.t}</b>: ${pc(cur.rate)} → <b>${pc(bl.rate)}</b> (n ${fmt(bl.n)}).`));
-    $('stHint').innerHTML = parts.length ? `<b>${tx('可以考虑：', 'Worth trying:')}</b> ${parts.join(' ')} <span class="muted">${tx('这些是相关关系：更贵、语言更多的游戏通常也投入更大。', 'These are associations: pricier, more localised games also tend to have bigger budgets.')}</span>`
-      : tx(`在有足够样本（≥30 款）的档位里，单改价格或语言数都不会让方案 ${pl.name} 明显更好。`, `Among tiers with enough games (30+), changing only the price or only the languages would not clearly improve Plan ${pl.name}.`);
+    const pl = S.plans[S.active], el = $('stHint');
+    if (!cur.n) { el.innerHTML = tx(`方案 ${pl.name} 没有可比的历史游戏，先换一个价格档或语言数。`, `Plan ${pl.name} has no comparable past games yet; try another price tier or number of languages.`); return; }
+    // suggest a change only when its paired 95% range of the gain stays above zero
+    const best = (B, curJ) => B.filter(b => b.j !== curJ && b.n >= SPARSE && b.dlo > 0).sort((a, b) => b.dlo - a.dlo)[0];
+    const bp = best(ifPrice, pl.price), bl = best(ifLang, pl.lt), parts = [], pts = v => (v * 100).toFixed(1);
+    if (bp) parts.push(tx(`把价格改到 <b>${bp.t}</b>：${pc(cur.rate)} → <b>${pc(bp.rate)}</b>（+${pts(bp.rate - cur.rate)} 个百分点，95% 区间 +${pts(bp.dlo)} 到 +${pts(bp.dhi)}）。`, `Move the price to <b>${bp.t}</b>: ${pc(cur.rate)} → <b>${pc(bp.rate)}</b> (+${pts(bp.rate - cur.rate)} points, 95% range +${pts(bp.dlo)} to +${pts(bp.dhi)}).`));
+    if (bl) parts.push(tx(`把语言改成 <b>${bl.t}</b>：${pc(cur.rate)} → <b>${pc(bl.rate)}</b>（+${pts(bl.rate - cur.rate)} 个百分点，95% 区间 +${pts(bl.dlo)} 到 +${pts(bl.dhi)}）。`, `Support <b>${bl.t}</b>: ${pc(cur.rate)} → <b>${pc(bl.rate)}</b> (+${pts(bl.rate - cur.rate)} points, 95% range +${pts(bl.dlo)} to +${pts(bl.dhi)}).`));
+    el.innerHTML = parts.length ? `<b>${tx('可以考虑：', 'Worth trying:')}</b> ${parts.join(' ')} <span class="muted">${tx('这些是相关关系：更贵、语言更多的游戏通常也投入更大。', 'These are associations: pricier, more localised games also tend to have bigger budgets.')}</span>`
+      : tx(`单改价格或语言数，都没有哪一档能在 95% 区间内明显好过方案 ${pl.name}。`, `No single change of price or languages clearly beats Plan ${pl.name} within its 95% range.`);
   }
   function drawSimilar(rows, pl) {
     const k = def(), scored = [];
@@ -278,11 +298,161 @@ const Studio = (() => {
       scored.push([r, DB.prominence(r, S.combo) - .12 * Math.abs(pTier(r) - pl.price) - .08 * Math.abs(lTier(r) - pl.lt) + Math.log10(1 + DB.col.reviews[r]) / 100]); }
     scored.sort((a, b) => b[1] - a[1]);
     const pick = want => scored.filter(([r]) => DB.hit(r, k) === want).slice(0, 6).map(([r]) => DB.game(r));
-    const card = g => { const src = coverSrc(g.i);
-      return `<div><div class="st-game">${src ? `<img src="${src}" alt="" loading="lazy">` : `<div class="ph">${esc(g.n)}</div>`}</div>
+    const card = g => {
+      return `<div><div class="st-game">${coverHtml(g)}</div>
         <div class="st-gcap"><b title="${esc(g.n)}">${esc(g.n)}</b><span>${g.y} · ${g.c ? money(g.c) : w('免费')} · ${g.nl} ${tx('种语言', 'lang.')} · ${fmt(g.rv)} ${tx('评价', 'reviews')}</span></div></div>`; };
     $('stSimHit').innerHTML = pick(1).map(card).join('') || `<div class="st-empty">—</div>`;
     $('stSimMiss').innerHTML = pick(0).map(card).join('') || `<div class="st-empty">—</div>`;
+  }
+
+  // ---------- player: find a game to play ----------
+  S.seeds = []; S.dims = { tags: true, price: false, rating: true, gems: false }; S.pick = null; S.ptag = null;
+  const DIMS = () => [
+    ['tags', tx('玩法相近', 'Similar gameplay'), tx('标签重合，越少见、越靠前的标签越重要', 'shared tags; rarer and more defining tags count more')],
+    ['rating', tx('口碑不低于我的游戏', 'Rated at least as well'), tx('好评率不低于你玩过的游戏', 'positive share at least as high as your games')],
+    ['price', tx('价格相近', 'Similar price'), tx('价位和你玩过的游戏接近', 'priced like the games you played')],
+    ['gems', tx('冷门佳作', 'Hidden gems'), tx('好评高、但知道的人不多', 'well rated but not widely known')]];
+  const PICK_COL = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9'];
+  let byAppid = null, byCover = null, recs = [];
+  const rowOfAppid = a => { if (!byAppid) { byAppid = new Map(); DB.col.appid.forEach((x, r) => byAppid.set(x, r)); } return byAppid.get(+a); };
+  const rowOfCover = i => { db(); if (!byCover) { byCover = new Map(); DB.col.cover.forEach((x, r) => { if (x >= 0 && !byCover.has(x)) byCover.set(x, r); }); } return byCover.get(+i); };
+  function renderPlayer() {
+    const body = $('stBody'), g = r => DB.game(r);
+    recs = S.seeds.length || S.ptag ? DB.recommend(S.seeds, S.dims, 6, S.ptag ? DB.withTags([S.ptag]) : null) : [];
+    if (!recs.some(x => x.r === S.pick)) S.pick = recs.length ? recs[0].r : null;   // the first pick is explained right away
+    const seedCard = r => { const x = g(r);
+      return `<div class="st-seed"><div class="st-game sm">${coverHtml(x)}</div><div><b>${esc(x.n)}</b><span>${x.y} · ${x.p == null ? '—' : pc(x.p, 0)} ${tx('好评', 'positive')}</span></div><button type="button" data-unseed="${r}" aria-label="${tx('移除', 'Remove')}">×</button></div>`; };
+    body.innerHTML = `
+      <section class="st-card st-pin">
+        <div class="st-pcol"><h3><i class="st-n">1</i>${tx('你玩过的游戏', 'Games you have played')}</h3>
+          <div class="st-seeds">${S.seeds.map(seedCard).join('')}
+            ${S.seeds.length < 5 ? `<div class="st-search"><input id="stQ" autocomplete="off" placeholder="${tx('搜索游戏名…', 'Search a game…')}" aria-label="${tx('搜索游戏', 'Search a game')}"><div class="st-sugg" id="stSugg" role="listbox"></div></div>` : ''}</div>
+          ${S.ptag ? `<div class="st-only"><span>${tx('只推荐这个类别：', 'Only games tagged')}</span> <b>${esc(S.ptag)}</b><button type="button" data-unptag="1" aria-label="${tx('取消类别筛选', 'Remove the tag filter')}">×</button></div>` : ''}
+          ${S.seeds.length ? '' : `<div class="st-presets">${tx('例如：', 'For example:')} <button type="button" data-example="1">Slay the Spire + Hades + Stardew Valley</button></div>`}</div>
+        <div class="st-pcol"><h3><i class="st-n">2</i>${tx('比较时你在意什么？', 'What matters to you?')}</h3>
+          <div class="st-dims">${DIMS().map(([k, t, d]) => `<button type="button" data-dim="${k}" class="${S.dims[k] ? 'on' : ''}" aria-pressed="${!!S.dims[k]}"><b>${t}</b><small>${d}</small></button>`).join('')}</div></div>
+      </section>
+      ${!S.seeds.length && !S.ptag ? `<div class="st-empty">${tx('先加至少一款你玩过的游戏。三款效果最好。', 'Add at least one game you have played. Three works best.')}</div>`
+        : !recs.length ? `<div class="st-empty">${S.ptag && !Object.values(S.dims).some(Boolean) || !S.ptag ? tx('至少选一个比较维度。', 'Pick at least one thing that matters.') : tx('这个类别里没有符合条件的游戏。', 'No game in this tag qualifies.')}</div>` : `
+      <section><div class="st-hd" style="margin:6px 0 12px"><h3 class="st-h2">${tx('为你推荐', 'Recommended for you')}</h3><p class="cap" style="margin:0">${S.seeds.length ? tx('每张卡片写着推荐理由。下面先解释第 1 款；点其他卡片可切换。', 'Each card says why it was picked. The first one is explained below; pick another to switch.') : tx(`还没有输入玩过的游戏，先列出「${esc(S.ptag)}」里口碑很好、风格各不相同的游戏（好评率按评价数修正，评价少的会被拉向平均）。加一款你玩过的游戏，推荐会更贴近你。`, `No games entered yet, so these are highly rated ${esc(S.ptag)} games of different kinds (ratings are adjusted for review count, so games with few reviews are pulled toward average). Add a game you played to make them personal.`)}</p></div>
+        <div class="st-recs">${recs.map(recCard).join('')}</div></section>
+      <section class="st-card" id="stWhy"></section>`}`;
+    if (recs.length) drawWhy();
+    wirePlayer();
+  }
+  function headline(x) {
+    const g = DB.game(x.r);
+    if (!S.seeds.length) return ['rating', S.dims.gems && x.gem ? tx(`「${S.ptag}」里的冷门佳作：${fmt(g.rv)} 条评价，${pc(g.p, 0)} 好评`, `Hidden ${S.ptag} gem: ${fmt(g.rv)} reviews, ${pc(g.p, 0)} positive`) : tx(`「${S.ptag}」里口碑很好：${pc(g.p, 0)} 好评，${fmt(g.rv)} 条评价`, `Highly rated ${S.ptag} game: ${pc(g.p, 0)} positive from ${fmt(g.rv)} reviews`)];
+    const s = DB.name(S.seeds[x.best]);
+    if (S.dims.gems && x.gem) return ['gem', tx(`冷门佳作：${fmt(g.rv)} 条评价，${pc(g.p, 0)} 好评`, `Hidden gem: ${fmt(g.rv)} reviews, ${pc(g.p, 0)} positive`)];
+    if (S.dims.tags && x.shared.length) return ['tags', tx(`玩起来像 ${s}`, `Plays like ${s}`)];
+    if (S.dims.rating) { const lo = Math.min(...S.seeds.map(r => DB.ratio(r) ?? 0));
+      return ['rating', (g.p ?? 0) >= lo ? tx(`口碑不输你的游戏：${pc(g.p, 0)} 好评`, `Rated as well as your games: ${pc(g.p, 0)}`) : tx(`口碑不错：${pc(g.p, 0)} 好评`, `Well rated: ${pc(g.p, 0)} positive`)]; }
+    if (S.dims.price) return ['price', tx(`和 ${s} 价位相近`, `Priced like ${s}`)];
+    return ['gem', tx(`口碑好、知道的人不多：${pc(g.p, 0)} 好评`, `Well rated, not widely known: ${pc(g.p, 0)}`)];
+  }
+  function recCard(x, i) {
+    const g = DB.game(x.r), [, why] = headline(x), on = S.pick === x.r;
+    const bars = DIMS().filter(([k]) => S.dims[k] && x.dims[k] != null).map(([k, t]) => `<div class="st-db"><span>${t}</span><i><b style="width:${Math.round(x.dims[k] * 100)}%;background:${PICK_COL[i]}"></b></i><em>${Math.round(x.dims[k] * 100)}</em></div>`).join('');
+    return `<article class="st-rec ${on ? 'on' : ''}" style="--pc:${PICK_COL[i]}">
+      <div class="st-game">${coverHtml(g)}<span class="st-num">${i + 1}</span></div>
+      <div class="st-rb"><h4 title="${esc(g.n)}">${esc(g.n)}</h4><div class="st-meta">${g.y} · ${fmt(g.rv)} ${tx('评价', 'reviews')} · ${pc(g.p, 0)} ${tx('好评', 'positive')} · ${g.c ? money(g.c) : w('免费')}</div>
+        <div class="st-why">${esc(why)}</div>
+        <div class="st-tags">${x.shared.slice(0, 4).map(t => `<span>${esc(t)}</span>`).join('')}</div>
+        <div class="st-dbs">${bars}</div>
+        <button type="button" class="st-btn ${on ? 'pri' : ''}" data-pick="${x.r}">${on ? tx('已选择 ✓', 'Picked ✓') : tx('选这款', 'Pick this game')}</button></div></article>`;
+  }
+  // one row of a two-game comparison: both games on one shared scale, each on its own line so equal values never hide each other
+  function dumbRow(label, delta, sc, a, b, fmtv) {
+    const cw = ($('stWhy') || document.body).clientWidth, narrow = cw < 560, W = Math.round(Math.max(300, Math.min(760, narrow ? cw - 30 : cw - 360))), H = 66, m = { l: 10, r: 10 };   // drawn near 1:1 so text stays body-sized
+    const tf = v => sc.log ? Math.log10(Math.max(v, 0) + 1) : v, A = tf(sc.a), B2 = tf(sc.b);
+    const X = v => m.l + (Math.min(Math.max(tf(v), A), B2) - A) / (B2 - A) * (W - m.l - m.r);
+    let g = `<svg viewBox="0 0 ${W} ${H}" class="st-dsvg" role="img" aria-label="${esc(label)}"><line x1="${m.l}" x2="${W - m.r}" y1="${H - 16}" y2="${H - 16}" stroke="var(--grid)"/>`;
+    const ticks = narrow && sc.ticksN ? sc.ticksN : sc.ticks;
+    ticks.forEach((t, k) => g += `<line x1="${X(t)}" x2="${X(t)}" y1="${H - 19}" y2="${H - 13}" stroke="var(--grid)"/><text x="${X(t)}" y="${H - 2}" text-anchor="${k === 0 ? 'start' : k === ticks.length - 1 ? 'end' : 'middle'}">${(sc.tf || fmtv)(t)}${k === ticks.length - 1 && sc.plus ? '+' : ''}</text>`);
+    if (a.v != null && b.v != null) g += `<line x1="${X(a.v)}" x2="${X(b.v)}" y1="14" y2="34" stroke="var(--muted)" stroke-dasharray="2 3"/>`;
+    for (const [p, y] of [[a, 14], [b, 34]]) {
+      if (p.v == null) { g += `<text x="${m.l}" y="${y + 4}" class="st-dna">${esc(p.short)}: ${tx('没有数据', 'no data')}</text>`; continue; }
+      const x = X(p.v), right = x > W - (narrow ? 120 : 170);
+      g += `<circle cx="${x}" cy="${y}" r="${p.ref ? 6 : 7.5}" fill="${p.ref ? 'var(--surface)' : p.col}" stroke="${p.ref ? 'var(--ink)' : 'var(--ink)'}" stroke-width="${p.ref ? 2 : 1.5}"/>`
+        + `<text x="${right ? x - 12 : x + 12}" y="${y + 4}" text-anchor="${right ? 'end' : 'start'}" class="st-dv"><tspan class="st-dvn">${esc(p.short)}</tspan> ${fmtv(p.v)}</text>`;
+    }
+    return `<div class="st-dr"><div class="st-drh"><b>${label}</b><span>${delta}</span></div>${g}</svg></div>`;
+  }
+  function drawWhy() {
+    const el = $('stWhy'); if (!el) return;
+    const x = recs.find(r => r.r === S.pick);
+    if (!x) { el.innerHTML = ''; return; }
+    const g = DB.game(x.r), i = recs.indexOf(x), seeds = S.seeds.map(r => DB.game(r)), cut = v => v.length > 22 ? v.slice(0, 21) + '…' : v;
+    // reference: the closest of your games, or with no games entered, the tag's typical (median) game
+    let ref;
+    if (seeds.length) ref = seeds[x.best];
+    else { const rows = Array.from(DB.withTags([S.ptag])).filter(r => DB.col.reviews[r] >= 50), med = f => { const v = rows.map(f).filter(z => z != null).sort((p, q) => p - q); return medianOf(v); };
+      ref = { n: tx(`「${S.ptag}」中位游戏`, `typical ${S.ptag} game`), c: med(r => DB.price[r]), p: med(r => DB.ratio(r)), rv: med(r => DB.col.reviews[r]), typical: true }; }
+    const A = { v: null, short: cut(ref.n), ref: true }, Bp = { v: null, short: cut(g.n), col: PICK_COL[i] };
+    const row = (label, delta, sc, f, fmtv) => dumbRow(label, delta, sc, { ...A, v: f(ref) }, { ...Bp, v: f(g) }, fmtv);
+    const parts = [], rn = `<b>${esc(ref.n)}</b>`;
+    const order = x.seedScores.map((v, j) => [v, j]).sort((a, b) => b[0] - a[0]);
+    if (S.dims.tags && seeds.length) {
+      const chips = x.shared.slice(0, 8).map(t => `<span class="st-tg">${esc(t)}</span>`).join(' ');
+      parts.push(`<div class="st-dr"><div class="st-drh"><b>${tx('玩法', 'Gameplay')}</b><span>${tx(`和 ${rn} 标签匹配 ${Math.round(x.dims.tags * 100)}%`, `${Math.round(x.dims.tags * 100)}% tag match with ${rn}`)}</span></div>
+        <div class="st-chips">${chips ? tx('共同标签：', 'Both are tagged ') + chips : tx('没有共同的主要标签。', 'No major tags in common.')}</div></div>`);
+    }
+    const moneyV = v => v ? money(v) : w('免费'), pts = v => Math.abs(Math.round(v * 100));
+    if (S.dims.price) {
+      const dv = (g.c || 0) - (ref.c || 0);
+      const delta = !g.c && !ref.c ? tx('都免费', 'Both are free') : Math.abs(dv) < .005 ? tx(`和 ${rn} 同价`, `Same price as ${rn}`)
+        : dv < 0 ? tx(`比 ${rn} 便宜 <b>${money(-dv)}</b>`, `<b>${money(-dv)} cheaper</b> than ${rn}`) : tx(`比 ${rn} 贵 <b>${money(dv)}</b>`, `<b>${money(dv)} more</b> than ${rn}`);
+      parts.push(row(tx('价格', 'Price'), delta, { a: 0, b: 70, log: true, plus: true, ticks: [0, 5, 10, 20, 40, 70], ticksN: [0, 5, 10, 20, 70], tf: v => v ? '$' + Math.round(v) : w('免费') }, z => z.c ?? 0, moneyV));
+    }
+    if (S.dims.rating || S.dims.gems || !seeds.length) {
+      const dv = g.p != null && ref.p != null ? g.p - ref.p : null;
+      const delta = dv == null ? tx('缺少好评率', 'Rating missing') : Math.abs(dv) < .005 ? tx(`和 ${rn} 一样`, `Same as ${rn}`)
+        : dv > 0 ? tx(`比 ${rn} 高 <b>${pts(dv)} 个百分点</b>`, `<b>${pts(dv)} points higher</b> than ${rn}`) : tx(`比 ${rn} 低 ${pts(dv)} 个百分点`, `${pts(dv)} points lower than ${rn}`);
+      parts.push(row(tx('好评率', 'Positive reviews'), delta, { a: .4, b: 1, ticks: [.4, .6, .8, 1] }, z => z.p, v => pc(v, 0)));
+    }
+    if (S.dims.gems || !seeds.length) {
+      const k2 = ref.rv && g.rv ? g.rv / ref.rv : null;
+      const delta = k2 == null ? '' : k2 < .9 ? tx(`评价数是 ${rn} 的 1/${(1 / k2).toFixed(k2 > .2 ? 1 : 0)}，知道的人更少`, `${(1 / k2).toFixed(k2 > .2 ? 1 : 0)}× fewer reviews than ${rn}: less known`) : k2 > 1.1 ? tx(`评价数是 ${rn} 的 ${k2.toFixed(1)} 倍`, `${k2.toFixed(1)}× the reviews of ${rn}`) : tx(`评价数和 ${rn} 差不多`, `About as many reviews as ${rn}`);
+      parts.push(row(tx('评价数（知名度，对数刻度）', 'Reviews (how known, log scale)'), delta + (x.gem ? tx('；评价少、好评高，是冷门佳作', '; few reviews and well rated: a hidden gem') : ''), { a: 10, b: 500000, log: true, ticks: [10, 100, 1000, 10000, 100000, 500000], ticksN: [10, 1000, 100000] }, z => z.rv, v => fmtK(v)));
+    }
+    let lead = '';
+    if (seeds.length > 1 && order[0][0] - order[order.length - 1][0] > .01) lead = order[0][0] - order[1][0] <= .01
+      ? tx(`和 <b>${esc(seeds[order[0][1]].n)}</b>、<b>${esc(seeds[order[1][1]].n)}</b> 一样接近；下面和前者对比。`, `Equally close to <b>${esc(seeds[order[0][1]].n)}</b> and <b>${esc(seeds[order[1][1]].n)}</b>; compared with the first below.`)
+      : tx(`你玩过的游戏里，它最接近 <b>${esc(ref.n)}</b>，下面逐项对比。`, `Of your games, it is nearest to <b>${esc(ref.n)}</b>; compared item by item below.`);
+    else if (seeds.length) lead = tx(`下面和你玩过的 <b>${esc(ref.n)}</b> 逐项对比。`, `Compared item by item with <b>${esc(ref.n)}</b>, which you played.`);
+    else lead = tx(`下面和「${esc(S.ptag)}」里的中位游戏（50+ 评价）对比。`, `Compared with the typical ${esc(S.ptag)} game (median of those with 50+ reviews).`);
+    el.innerHTML = `<div class="st-whyp" style="--pc:${PICK_COL[i]}"><div class="st-game">${coverHtml(g)}<span class="st-num">${i + 1}</span></div>
+      <div class="st-whyb"><div class="kicker" style="margin-bottom:6px">${tx('为什么推荐', 'Why this game')}</div><h3 style="font-size:22px;margin-bottom:4px">${esc(g.n)}</h3>
+        <p class="cap" style="margin:0 0 6px">${lead}</p>
+        <div class="st-dleg"><span><i class="o"></i>${esc(ref.n)}</span><span><i style="background:${PICK_COL[i]}"></i>${esc(g.n)}</span></div>
+        ${parts.join('')}</div></div>`;
+  }
+  function wirePlayer() {
+    const body = $('stBody');
+    body.onclick = e => {
+      const t = e.target.closest('[data-unseed],[data-dim],[data-pick],[data-example],[data-seed],[data-unptag]'); if (!t) return;
+      if (t.dataset.unptag) { S.ptag = null; render(); return; }
+      if (t.dataset.unseed) S.seeds = S.seeds.filter(r => r !== +t.dataset.unseed);
+      else if (t.dataset.dim) { S.dims[t.dataset.dim] = !S.dims[t.dataset.dim]; }
+      else if (t.dataset.pick) { S.pick = +t.dataset.pick; renderPlayerPick(); return; }
+      else if (t.dataset.example) S.seeds = ['Slay the Spire', 'Hades', 'Stardew Valley'].map(q => DB.search(q, 1)[0]).filter(r => r != null);
+      else if (t.dataset.seed) { const r = +t.dataset.seed; if (!S.seeds.includes(r)) S.seeds.push(r); render(); const q = $('stQ'); if (q) q.focus(); return; }
+      render();
+    };
+    const q = $('stQ'), sug = $('stSugg'); if (!q) return;
+    let tm = 0;
+    q.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => {
+      const rows = DB.search(q.value, 8).filter(r => !S.seeds.includes(r));
+      sug.innerHTML = rows.map(r => { const g = DB.game(r); return `<button type="button" role="option" data-seed="${r}"><b>${esc(g.n)}</b><span>${g.y} · ${fmt(g.rv)} ${tx('评价', 'reviews')}</span></button>`; }).join('')
+        || (q.value.trim() ? `<div class="st-none">${tx(`没找到“${esc(q.value.trim())}”。试试英文原名，或名字的一部分。`, `No game matches “${esc(q.value.trim())}”. Try its English title or part of the name.`)}</div>` : '');
+      sug.classList.toggle('open', !!sug.innerHTML); }, 120); });
+    q.addEventListener('keydown', e => { if (e.key === 'Enter') { const b = sug.querySelector('[data-seed]'); if (b) b.click(); } if (e.key === 'Escape') sug.classList.remove('open'); });
+  }
+  function renderPlayerPick() {   // a pick only changes highlights, not the ranking
+    const host = document.querySelector('.st-recs'); if (host) host.innerHTML = recs.map(recCard).join('');
+    drawWhy(); syncHash();
+    const why = $('stWhy'); if (S.pick != null && why) why.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   // ---------- charts ----------
@@ -378,24 +548,94 @@ const Studio = (() => {
   }
   function drawGames(L) {
     const d = DB, k = def(), top = Array.from(L.scope).sort((a, b) => d.col.reviews[b] - d.col.reviews[a]).slice(0, 12).map(r => d.game(r));
-    $('stGames').innerHTML = top.map(g => { const src = coverSrc(g.i);
-      return `<div><div class="st-game">${src ? `<img src="${src}" alt="" loading="lazy">` : `<div class="ph">${esc(g.n)}</div>`}${g[k] ? `<span class="st-hit">${tx('成功', 'HIT')}</span>` : ''}</div>
+    $('stGames').innerHTML = top.map(g => {
+      return `<div><div class="st-game">${coverHtml(g)}${g[k] ? `<span class="st-hit">${tx('成功', 'HIT')}</span>` : ''}</div>
         <div class="st-gcap"><b title="${esc(g.n)}">${esc(g.n)}</b><span>${g.y} · ${fmt(g.rv)} ${tx('评价', 'reviews')} · ${g.p == null ? '—' : pc(g.p, 0)} ${tx('好评', 'positive')} · ${g.c ? money(g.c) : w('免费')}</span></div></div>`; }).join('');
   }
 
   // ---------- entry points ----------
+  // ---------- map panel: where the selected game sits in the selected tag ----------
+  const posCache = new Map();
+  const PANEL_HIDE = ['verdict', 'smxh', 'smx', 'kpis', 'achv'];
+  function drawGamePos() {
+    const box = $('gpos'); if (!box) return;
+    const t = state.locked, gsel = !!(t && state.game);
+    PANEL_HIDE.forEach(id => { const n = $(id); if (n) n.style.display = gsel ? 'none' : ''; });
+    box.style.display = gsel ? '' : 'none';
+    if (!gsel) { if (t) $('selName').textContent = t; box.innerHTML = ''; return; }
+    db();
+    const r = rowOfCover(state.game.i);
+    if (r == null) { box.innerHTML = `<p class="cap">${tx('这款游戏不在逐款数据里。', 'This game is not in the per-game table.')}</p>`; return; }
+    const g = DB.game(r);
+    $('selName').textContent = `${g.n} · ${t}`;
+    if (!posCache.has(t)) {   // the panel's reference: games with this tag released 2018–2024, as in every other panel number
+      const rows = DB.where({ tags: [t], scope: true });
+      const metric = f => { const v = []; for (const q of rows) { const z = f(q); if (z != null) v.push(z); } return Float64Array.from(v).sort(); };
+      posCache.set(t, { n: rows.length, price: metric(q => DB.price[q]), reviews: metric(q => DB.col.reviews[q]), rating: metric(q => DB.ratio(q)) });
+    }
+    const P = posCache.get(t), sc = DB.scope;
+    const out = g.y < sc[0] || g.y > sc[1] ? `<p class="st-gpnote">${tx(`这款游戏 ${g.y} 年发行，不在面板统计的 ${sc[0]}–${sc[1]} 年范围内；下面仍和这些年的同类比较。`, `Released in ${g.y}, outside the ${sc[0]}–${sc[1]} window the panel counts; it is still compared with those games below.`)}</p>` : '';
+    const moneyV = v => v ? money(v) : w('免费');
+    const R = [
+      [tx('价格', 'Price'), P.price, g.c ?? 0, moneyV, { a: 0, b: 70, log: true, plus: true, ticks: [0, 5, 10, 20, 40, 70], tf: v => v ? '$' + Math.round(v) : w('免费') }, tx('更贵', 'pricier')],
+      [tx('评价数', 'Reviews'), P.reviews, g.rv, fmtK, { a: 1, b: 500000, log: true, ticks: [1, 10, 100, 1000, 10000, 100000, 500000] }, tx('评价更多', 'more reviewed')],
+      [tx('好评率', 'Positive reviews'), P.rating, g.p, v => pc(v, 0), { a: 0, b: 1, ticks: [0, .25, .5, .75, 1] }, tx('口碑更好', 'better rated')]];
+    const W = 420, H = 64, m = { l: 8, r: 8 };
+    const rows = R.map(([lab, arr, v, fmtv, scl, better]) => {
+      const tf = z => scl.log ? Math.log10(Math.max(z, 0) + 1) : z, A = tf(scl.a), B2 = tf(scl.b), X = z => m.l + (Math.min(Math.max(tf(z), A), B2) - A) / (B2 - A) * (W - m.l - m.r);
+      const med = medianOf(arr), nb = 40, bins = new Array(nb).fill(0);
+      for (const z of arr) bins[Math.min(nb - 1, Math.max(0, Math.floor((tf(z) - A) / (B2 - A) * nb)))]++;
+      const bm = Math.sqrt(Math.max(1, ...bins)), bw = (W - m.l - m.r) / nb;
+      let below = 0; if (v != null) for (const z of arr) { if (z < v) below++; else break; }
+      let svg = `<svg viewBox="0 0 ${W} ${H}" class="st-dsvg">`;
+      bins.forEach((c, k) => { const h = Math.sqrt(c) / bm * 30; svg += `<rect x="${m.l + k * bw}" y="${H - 18 - h}" width="${bw - 1}" height="${h}" fill="var(--rest)" opacity=".6"/>`; });
+      if (med != null) svg += `<line x1="${X(med)}" x2="${X(med)}" y1="8" y2="${H - 16}" stroke="var(--ink2)" stroke-dasharray="3 3"/>`;
+      if (v != null) svg += `<line x1="${X(v)}" x2="${X(v)}" y1="6" y2="${H - 16}" stroke="var(--sel)" stroke-width="2.5"/><circle cx="${X(v)}" cy="8" r="5" fill="var(--sel)"/>`;
+      scl.ticks.forEach((tk, k) => svg += `<text x="${X(tk)}" y="${H - 3}" text-anchor="${k === 0 ? 'start' : k === scl.ticks.length - 1 ? 'end' : 'middle'}">${(scl.tf || fmtv)(tk)}${k === scl.ticks.length - 1 && scl.plus ? '+' : ''}</text>`);
+      const share = Math.min(99, Math.floor(below / arr.length * 100)) + '%';   // floored, so 99.9% never reads as 'all of them'
+      const where = v == null ? tx('缺失（还没有评价）', 'missing (no reviews yet)') : arr.length && below === arr.length ? tx('同类中最高', `the highest of them`) : tx(`高于 ${share} 的同类`, `${better} than ${share} of them`);
+      return `<div class="st-gprow"><div class="st-gph"><b>${lab}</b><span><em style="color:var(--sel)">${v == null ? '—' : fmtv(v)}</em> · ${tx('同类中位', 'tag median')} ${med == null ? '—' : fmtv(med)} · ${where}</span><small>n = ${fmt(arr.length)}</small></div>${svg}</svg></div>`;
+    });
+    box.innerHTML = `<div class="st-gphd">${tx(`<b>${esc(g.n)}</b> 在「${esc(t)}」里的位置`, `Where <b>${esc(g.n)}</b> sits among ${esc(t)} games`)}</div>
+      <p class="st-gpnote">${tx(`灰色是 ${fmt(P.n)} 款 ${sc[0]}–${sc[1]} 年发行的「${esc(t)}」游戏，虚线是同类中位数，彩色线是这款游戏。每项只计该项有数据的游戏。`, `Grey: the ${fmt(P.n)} ${esc(t)} games released ${sc[0]}–${sc[1]}. Dashed: the tag median. Coloured: this game. Each row counts only games with that value.`)}</p>${out}${rows.join('')}
+      <p class="st-gpnote">${tx('点上方面包屑里的 × 取消选中，回到类别总览。', 'Clear the game with × in the breadcrumb above to return to the tag overview.')}</p>`;
+  }
   function init() {
+    // entry points: the world-select screen and the map toolbar both offer the two tasks by name
+    const entry = (cls, id, label, opts) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.id = id; b.innerHTML = label; b.onclick = () => open(opts); return b; };
     const acts = document.querySelector('#ui3 .acts');
-    if (acts) { const b = document.createElement('button'); b.className = 'ghost'; b.type = 'button'; b.id = 'studioBtn'; b.textContent = tx('做游戏 Studio', 'Studio: plan a game'); b.onclick = () => open(); acts.prepend(b); }
+    if (acts) { acts.prepend(entry('ghost', 'studioFind', tx('找游戏玩', 'Find a game'), { view: 'player' })); acts.prepend(entry('ghost', 'studioBtn', tx('做一款游戏', 'Plan a game'), { view: 'lane' })); }
+    const sel = document.querySelector('#select .selhead');
+    if (sel) {
+      const box = document.createElement('div'); box.className = 'st-entry';
+      box.append(entry('st-ent', 'stEntryDev', `<b>${tx('我在做游戏 →', "I'm making a game →")}</b><small>${tx('选赛道、看拥挤度、比较方案', 'pick a lane, check crowding, compare plans')}</small>`, { view: 'lane' }),
+        entry('st-ent', 'stEntryPlayer', `<b>${tx('我在找游戏玩 →', "I'm looking for a game →")}</b><small>${tx('输入玩过的游戏，看推荐和理由', 'enter games you played, get picks with reasons')}</small>`, { view: 'player' }));
+      sel.appendChild(box);
+    }
     const hinfo = document.querySelector('.hinfo');
-    if (hinfo) { const b = document.createElement('button'); b.className = 'st-btn pri'; b.type = 'button'; b.id = 'toLane'; hinfo.appendChild(b);
-      b.onclick = () => state.locked && open({ combo: [state.locked], view: 'lane' }); }
-    const sync = () => { const b = $('toLane'); if (b) { b.style.display = state.locked ? '' : 'none'; b.textContent = tx(`用「${state.locked}」做游戏 →`, `Plan a game with ${state.locked} →`); } };
-    const orig = lock; lock = function (...a) { const r = orig.apply(this, a); sync(); return r; };   // eslint-disable-line no-global-assign
+    if (hinfo) {
+      const box = document.createElement('div'); box.className = 'st-hacts';
+      box.innerHTML = `<button class="st-btn" type="button" id="toFind"></button><button class="st-btn pri" type="button" id="toLane"></button>`;
+      hinfo.appendChild(box);
+      $('toLane').onclick = () => state.locked && open({ combo: [state.locked], view: 'lane' });
+      $('toFind').onclick = () => { if (!state.locked) return; if (state.game) open({ view: 'player', seedCover: state.game.i, ptag: null }); else open({ view: 'player', ptag: state.locked }); };
+      const v = document.getElementById('verdict'), gp = document.createElement('section'); gp.id = 'gpos'; gp.className = 'gpos'; v.parentNode.insertBefore(gp, v);
+    }
+    const sync = () => {
+      const t = state.locked, gsel = !!(t && state.game), L = $('toLane'), F = $('toFind');
+      if (L) { L.parentElement.style.display = t ? '' : 'none'; L.textContent = tx(`分析「${t}」的市场 →`, `Analyse the ${t} market →`); }
+      if (F) F.textContent = gsel ? tx('找与这款相似的游戏 →', 'Find games like this one →') : tx(`找「${t}」里的好游戏 →`, `Find ${t} games to play →`);
+      drawGamePos();
+    };
+    for (const fn of ['lock', 'refreshSel', 'clearGame', 'drawKpis']) {   // keep the panel in step with every change of selection
+      const orig = window[fn]; if (typeof orig !== 'function') continue;
+      window[fn] = function (...a) { const r = orig.apply(this, a); sync(); return r; };
+    }
     sync();
     if (location.hash.startsWith('#studio/')) {
       const [, view, tags, sm] = location.hash.slice(1).split('/');
-      open({ view: view || 'lane', sm, combo: tags ? tags.split('+').map(decodeURIComponent).filter(Boolean) : undefined });
+      if (view === 'player') { const pt = location.hash.slice(1).split('/')[4]; open({ view, sm, seedAppids: tags ? tags.split('+').filter(Boolean) : [], ptag: pt ? decodeURIComponent(pt) : null }); }
+      else open({ view: view || 'lane', sm, combo: tags ? tags.split('+').map(decodeURIComponent).filter(Boolean) : undefined });
     }
   }
   return { init, open, close, state: S };

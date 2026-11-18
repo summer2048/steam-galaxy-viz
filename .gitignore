@@ -12,3 +12,7 @@ games.parquet
 dash.json
 covers_cache/
 covers_raw/
+
+# e2e scratch copy
+_e2e.html
+covers/

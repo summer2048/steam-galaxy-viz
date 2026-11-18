@@ -49,6 +49,16 @@ The owner-based definitions take every game's owner count at the top of its Stea
 - **Selection path.** The panel header shows *Group › Tag › Game*. Each level can be cleared with ×. **Esc** or a click on empty map space steps back one level. Selecting a single game puts the rest of the map in shadow.
 - **Detail panel** (3/4 of the screen). The left column holds the hero cover, the three success rates, KPIs, achievements and a cover mosaic (tile area follows the chosen metric). The right column is a scrolling data reel: scale and trend, market share, pricing, players and quality, and competition.
 
+## Studio: the three tasks
+
+*Plan a game* and *Find a game* (on the world-select screen, in the map toolbar, or `Plan a game with <tag>` in a tag's panel) open **Studio**, which answers questions the tag map cannot, from a per-game table of 83,353 tagged games:
+
+- **Pick a lane** (developer): any tag combination. Success vs the market is *year-adjusted* (observed hits ÷ the hits expected from each game's release-year market rate), because recent games have had less time to collect reviews. Two badges keep performance (vs market, 95% range) and crowding (share of 2024 releases plus its direction) separate. A scatter and a ranked list show what one more tag does; a trend chart shows share of new releases and yearly success with honest intervals.
+- **Compare plans** (developer): Plans A/B/C differ by price tier and number of languages (games listing no language join no tier). Each plan's chance is estimated per release year inside the lane, shrunk toward that year's lane rate, averaged with the lane's year mix, with joint within-year bootstrap intervals for plans and differences. *What if this plan changed one thing* holds languages or price fixed and only suggests a change whose paired 95% gain stays above zero. Playtime and launch year are deliberately left out (playtime exists for ~20% of games, and those succeed far more often: 46% vs about 1%).
+- **Find a game** (player): enter games you played, choose what matters (similar gameplay, rated at least as well, similar price, hidden gems). Candidates are scored per seed (IDF- and vote-rank-weighted tag overlap, ratings shrunk with a 20-review prior), 0.75 × best seed + 0.25 × second, then diversified. Every card states its reason using only the switched-on dimensions; picking one explains it and highlights it on comparison strips.
+
+Share links: `#studio/<lane|plan>/<tags joined by +>/<r|o|g>` and `#studio/player/<appids joined by +>/<r|o|g>`.
+
 ## Repository layout
 
 ```
@@ -62,6 +72,8 @@ data/assets.json           embedded covers (WebP, base64)
 data/games.json            per-game table for ad-hoc queries (tag combos, plans, similar games)
 scripts/db.js              in-browser query engine over data/games.json
 scripts/test_db.js         parity test: db.js must reproduce the per-tag aggregates
+scripts/studio.js, .css    Studio views (inlined at build via __FILE:name__)
+scripts/e2e.js, e2e.py     end-to-end checks that click through Studio in headless Chrome
 steam_eda_report.md        first-round exploratory analysis (Chinese)
 tag_stats.csv, charts/     static EDA outputs
 ```
@@ -84,6 +96,8 @@ The full pipeline from raw data (Python 3.12, `pip install -r requirements.txt`)
 6. `python scripts/export_games.py clean.pkl data/dash_offline.json data/games.json` writes the per-game table: every tagged game (83k), with columns as base64 typed arrays and success flags computed once in Python. It reads thresholds, outcome tags and cover indices from `dash_offline.json`, so run it after step 5.
 7. `node scripts/test_db.js data/games.json data/dash_offline.json` checks that `scripts/db.js` reproduces every per-tag aggregate (n, three success rates, price and language buckets, features, playtime, yearly share). Run it whenever `export.py`, `export_games.py` or `db.js` changes.
 8. Run `build.py` as above. The games table and `db.js` are inlined only where the template contains `__GAMES__` and `__FILE:db.js__`.
+9. `python scripts/game_covers.py clean.pkl data/games.json covers_cache covers` fetches a thumbnail for every game Studio can recommend that has no embedded cover (the dataset's image URL first, Steam's official header for the same AppID second), checks it decodes and writes `covers/<appid>.webp` (230×107, ~4 KB). It is incremental, and `covers/_report.json` lists totals, failures and size. The folder (~100 MB for 23.6k games) is too large to embed, so ship it next to the HTML file; without it the page shows game names instead.
+10. `python scripts/e2e.py` clicks through all three tasks in headless Chrome and prints PASS/FAIL (`E2E_LANG=zh` for Chinese).
 
 Optional EDA: `scripts/overview.py`, `scripts/tags.py clean.pkl tag_stats.csv`, and `scripts/charts.py clean.pkl tag_stats.csv charts`.
 
