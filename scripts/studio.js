@@ -5,6 +5,12 @@ const Studio = (() => {
   const DEF_TXT = {
     r: tx('拿到 500+ 条评价', 'reach 500+ reviews'), o: tx('持有量区间上限达到 20 万+', 'reach 200k+ owners (top of the owner band)'), g: tx('按上限估算的流水达到 $100 万+', 'gross an estimated $1M+ (upper bound: owner band top × list price)'),
   };
+  // Studio keeps all three definitions from the per-game table; the map itself only shows reviews (raw and year-adjusted).
+  const ST_SM = [
+    { k: 'r', t: tx('评价 ≥ 500', 'Reviews ≥ 500'), s: tx('至少 500 条 Steam 评价', 'At least 500 Steam reviews') },
+    { k: 'o', t: tx('持有量上限 ≥ 20 万', 'Owners ≥ 200k (band top)'), s: tx('SteamSpy 持有量区间上限 ≥ 20 万', 'Top of the SteamSpy owner band ≥ 200k') },
+    { k: 'g', t: tx('估算流水 ≥ $100 万', 'Est. gross ≥ $1M'), s: tx('持有量上限 × 原价 ≥ $100 万（未扣分成与折扣，是上限估计）', "Owner upper bound × list price ≥ $1M (before Steam's cut and discounts, an upper bound)") },
+  ];
   const PRESETS = [['Card Game'], ['Deckbuilding', 'Rogue-lite'], ['Cozy', 'Farming Sim'], ['Survival', 'Open World'], ['Puzzle'], ['Visual Novel']];
   const S = { open: false, mode: 'dev', view: 'lane', combo: ['Card Game'], sm: 'r' };
   let DB = null, root = null, tagList = null, opener = null;
@@ -12,6 +18,8 @@ const Studio = (() => {
 
   const $ = id => document.getElementById(id);
   const def = () => DEFS[S.sm];
+  const mktCache = {};   // market rate (tagged games, 2018–2024) per definition, from the per-game table rather than the map's definitions
+  const mkt = () => mktCache[S.sm] ??= DB.rate(DB.where({ scope: true }), def()).rate;
   const times = v => v == null || !isFinite(v) ? '—' : (v >= 10 ? v.toFixed(0) : v.toFixed(v >= 1 ? 2 : 2)) + '×';
   const pc = (v, d = 1) => v == null ? '—' : (v * 100).toFixed(v < .01 && v > 0 ? 2 : d) + '%';
   const medianOf = v => !v.length ? null : v.length % 2 ? v[v.length >> 1] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2;   // v sorted
@@ -39,7 +47,7 @@ const Studio = (() => {
         <div class="st-seg" id="stMode" role="group" aria-label="${tx('模式', 'Mode')}">
           <button type="button" data-m="dev">${tx('我在做游戏', "I'm making a game")}</button>
           <button type="button" data-m="player">${tx('我在找游戏玩', "I'm looking for a game")}</button></div>
-        <div><span class="st-seg-l">${tx('成功 =', 'Success =')}</span><div class="st-seg" id="stSM" role="group">${SM.map(m => `<button type="button" data-k="${m.k}" title="${esc(m.s)}">${m.t}</button>`).join('')}</div></div>
+        <div><span class="st-seg-l">${tx('成功 =', 'Success =')}</span><div class="st-seg" id="stSM" role="group">${ST_SM.map(m => `<button type="button" data-k="${m.k}" title="${esc(m.s)}">${m.t}</button>`).join('')}</div></div>
       </header>
       <div class="st-wrap"><nav class="st-steps" id="stSteps"></nav><div id="stBody"></div></div>
       <datalist id="stTags"></datalist>`;
@@ -56,7 +64,7 @@ const Studio = (() => {
     if (opts.combo) S.combo = opts.combo.slice();
     if (opts.add && !S.combo.includes(opts.add)) S.combo.push(opts.add);
     if (opts.view === 'player') S.mode = 'player'; else if (opts.view) { S.view = opts.view; S.mode = 'dev'; }
-    S.sm = opts.sm && DEFS[opts.sm] ? opts.sm : state.sm; S.open = true;
+    S.sm = opts.sm && DEFS[opts.sm] ? opts.sm : DEFS[state.sm] ? state.sm : 'r'; S.open = true;   // the map's year-adjusted 'a' has no Studio twin; Studio adjusts for year itself
     if (!root.contains(document.activeElement)) opener = document.activeElement;
     document.body.classList.add('studio-open'); hideTip();
     if ('ptag' in opts) S.ptag = opts.ptag && DB_TAG_OK(opts.ptag) ? opts.ptag : null;
@@ -130,7 +138,7 @@ const Studio = (() => {
         <div class="st-kpis">
           ${kpi(tx('成功率 vs 大盘（按年份校正）', 'Success vs the market (year-adjusted)'), times(L.all.ratio), tx(`95% 区间 ${times(L.all.lo)}–${times(L.all.hi)} · 1× = 大盘`, `95% range ${times(L.all.lo)}–${times(L.all.hi)} · 1× = market`), 'big')}
           ${kpi(tx('游戏数 2018–24', 'Games 2018–24'), fmt(L.all.n), tx(`其中 ${fmt(L.all.O)} 款成功`, `${fmt(L.all.O)} succeeded`))}
-          ${kpi(tx('原始成功率', 'Raw success rate'), pc(L.raw), tx(`大盘 ${pc(succ(B, S.sm))}`, `market ${pc(succ(B, S.sm))}`))}
+          ${kpi(tx('原始成功率', 'Raw success rate'), pc(L.raw), tx(`大盘 ${pc(mkt())}`, `market ${pc(mkt())}`))}
           ${kpi(tx('2024 年新作占比', 'Share of 2024 releases'), pc(y1.share, 2), y0.share ? tx(`2018 年 ${pc(y0.share, 2)} → ×${(y1.share / y0.share).toFixed(1)}`, `2018: ${pc(y0.share, 2)} → ×${(y1.share / y0.share).toFixed(1)}`) : tx('2018 年还没有这类游戏', 'none released in 2018'))}
           ${kpi(tx('2024 年对手', 'Rivals in 2024'), fmt(y1.n), tx('同年发行的同赛道游戏', 'same-lane games released that year'))}
         </div></section>
