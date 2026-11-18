@@ -2665,6 +2665,10 @@ const M = (() => {
     const [mx, my] = local(e), b = hit(mx, my), l = b ? null : hitLink(mx, my);
     if (b) { if (state.game && state.game.t === b.t) clearGame(); else lock(b.t === state.locked ? null : b.t); } else if (l) lock(l.tag); else peel();
   });
+  // on touch the browser may take over a vertical swipe as page scroll: it then sends pointercancel, never pointerup
+  const endDrag = () => { if (!dragging) return; dragging = false; vy = 0; cO.style.cursor = 'grab'; };
+  cO.addEventListener('pointercancel', endDrag);
+  cO.addEventListener('lostpointercapture', endDrag);
   cO.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); const [mx, my] = local(e); zoomAt(Math.exp(-e.deltaY * (e.deltaMode === 1 ? .06 : .0025)), mx, my); }, { passive: false });
   // Zoom moves toward the ball nearest the pointer (or the selected one), a little more with every step.
   function zlab() { $('zLbl').textContent = zoomT.toFixed(1) + '×'; }
