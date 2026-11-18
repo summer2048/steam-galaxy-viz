@@ -6,9 +6,12 @@ Placeholders in the template:
   __DATA__ __ASSETS__ __FAMILIES__ __I18N__   per-tag aggregates, covers, tag -> faction (../tag_families.csv), translations
   __GAMES__                                   per-game table (data/games.json), only read if the template uses it
   __FILE:name__                               the contents of scripts/<name> (Studio code and styles)
+Derived metrics (year-adjusted success, growth) are added to __DATA__ by derive.py, so the data file itself stays as exported.
 All placeholders are replaced in one pass, so text inside the data can never be mistaken for a placeholder.
 """
 import sys, os, re, csv, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from derive import derive
 
 tpl, data, assets, out = sys.argv[1:5]
 here = os.path.dirname(os.path.abspath(tpl))
@@ -18,7 +21,7 @@ safe = lambda s: s.replace('</', r'<\/')   # nothing inlined may close the surro
 read = lambda p: open(p, encoding='utf-8').read()
 
 def value(name):
-    if name == 'DATA': return safe(read(data))
+    if name == 'DATA': return safe(json.dumps(derive(json.loads(read(data))), ensure_ascii=False, separators=(',', ':')))
     if name == 'ASSETS': return read(assets)
     if name == 'FAMILIES':
         fams = {r['tag']: r['family'] for r in csv.DictReader(open(os.path.join(here, '..', 'tag_families.csv'), encoding='utf-8-sig'))}
