@@ -78,4 +78,4 @@ NNN-简短英文描述.md
 | [010](010-rerun-pipeline.md) | 重跑管线，验证 export.py 的改动 | open | P2 | data |
 | [011](011-badge-thresholds.md) | 徽章和分级的硬阈值 | open | P3 | viz |
 | [012](012-plain-wording-and-axis-titles.md) | 成功率两种算法的叫法看不懂；坐标轴标题经常不显示 | done | P1 | ux |
-| [013](013-studio-vs-pruned-export.md) | 重跑管线会让 Studio 的数据导出失败 | open | P1 | data |
+| [013](013-studio-vs-pruned-export.md) | 重跑管线会让 Studio 的数据导出失败 | done | P1 | data |

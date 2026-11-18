@@ -5,11 +5,12 @@ Usage: python export.py clean.pkl dash.json
 import sys, os, json, pandas as pd, numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from derive import derive
+from defs import REVIEW_T, OWN_T, GROSS_T
 
 pkl, out = sys.argv[1:3]
 df = pd.read_pickle(pkl)
 df['list_price'] = np.where(df.discount.between(1, 99), df.price / (1 - df.discount / 100), df.price)
-df['hit'] = df.reviews >= 500
+df['hit'] = df.reviews >= REVIEW_T
 # Success has one definition (>= 500 reviews). Owner counts are coarse SteamSpy bands, so the owner- and gross-based
 # definitions tracked it closely (r = 0.84-0.88 across tags) without adding information; only the gross estimate is kept, for reference.
 df['gross'] = df.owners_hi * df.list_price                     # upper-bound gross revenue before Steam's cut
@@ -191,6 +192,6 @@ for t in keep:
 json.dump(derive({'base': base, 'tags': tags,
            'labels': {'price': PB[1], 'lang': LB[1], 'rev': RB[1], 'own': OB[1], 'score': SB[1], 'years': YEARS,
                       'share_years': SHARE_YEARS, 'feats': list(FEATS)},
-           'meta': {'cdn': CDN, 'snapshot': '2026-03', 'universe': int(len(U))}}),
+           'meta': {'review_t': REVIEW_T, 'own_t': OWN_T, 'gross_t': GROSS_T, 'cdn': CDN, 'snapshot': '2026-03', 'universe': int(len(U))}}),
           open(out, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print(len(tags), 'tags; baseline hit', base['hit'])

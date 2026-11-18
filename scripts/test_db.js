@@ -26,8 +26,9 @@ function cmp(where, path, js, py, tol = TOL) {
 const FIELDS = { n: 0, hits: 0, hit: TOL, hit_o: TOL, hit_g: TOL, score: TOL, recent: TOL, price: PTOL, zh: TOL, own_med: 0, gross_med: 1, gross_p90: 1,
   price_b: TOL, lang_b: TOL, price_dist: TOL, play: TOL, feats: TOL };
 
+const skipped = new Set();   // fields the Python export no longer writes (issue 005 pruned owner/gross rates from the map)
 function check(where, js, py, fields) {
-  for (const [f, tol] of Object.entries(fields)) cmp(where, f, js[f], py[f], tol);
+  for (const [f, tol] of Object.entries(fields)) { if (!(f in py)) { skipped.add(f); continue; } cmp(where, f, js[f], py[f], tol); }
 }
 
 t0 = Date.now();
@@ -86,4 +87,5 @@ if (fails.length) {
   console.log(`\nFAIL: ${fails.length} mismatches`); fails.slice(0, 40).forEach(f => console.log('  ' + f));
   process.exit(1);
 }
+if (skipped.size) console.log(`not in this export, not compared: ${[...skipped].join(", ")}`);
 console.log(`\nOK: ${names.length} tags + market baseline + lane spot checks match`);

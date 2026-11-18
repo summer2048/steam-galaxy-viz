@@ -3,15 +3,18 @@
 Usage: python export_games.py clean.pkl data/dash_offline.json data/games.json
 
 Every tagged game of every year is kept (the trend views need all years). Columns are little-endian typed
-arrays in base64; scripts/db.js decodes them. Definitions (success thresholds, outcome tags, cover indices)
-are read from dash_offline.json so this table can't drift from the per-tag aggregates.
+arrays in base64; scripts/db.js decodes them. Success thresholds come from defs.py, shared with export.py; outcome tags and cover indices are read from
+dash_offline.json so this table can't drift from the per-tag aggregates.
 """
-import sys, re, json, base64, pandas as pd, numpy as np
+import sys, os, re, json, base64, pandas as pd, numpy as np
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from defs import REVIEW_T, OWN_T, GROSS_T
 from collections import Counter
 
 pkl, dash_path, out = sys.argv[1:4]
 dash = json.load(open(dash_path, encoding='utf-8'))
-OWN_T, GROSS_T = dash['meta']['own_t'], dash['meta']['gross_t']
+for k, v in (('review_t', REVIEW_T), ('own_t', OWN_T), ('gross_t', GROSS_T)):   # older exports may lack these; if present they must agree
+    if k in dash['meta'] and dash['meta'][k] != v: sys.exit(f'{dash_path}: meta.{k} = {dash["meta"][k]}, defs.py says {v}. Rerun export.py.')
 
 df = pd.read_pickle(pkl)
 df = df[df.tags.map(len) > 0].sort_values(['year', 'appid']).reset_index(drop=True)
@@ -51,7 +54,7 @@ feat = bits(*FEATS)
 # ---- outcome flags, computed here once so the page never re-derives thresholds
 ADULT = {'Hentai', 'NSFW', 'Sexual Content', 'Nudity'}
 safe = df.img.notna() & (df.age.fillna(0) < 18) & df.tags.map(lambda t: not (set(t) & ADULT))
-flags = bits(df.reviews >= 500, df.owners_hi >= OWN_T, df.owners_hi * df.list_price >= GROSS_T, safe)
+flags = bits(df.reviews >= REVIEW_T, df.owners_hi >= OWN_T, df.owners_hi * df.list_price >= GROSS_T, safe)
 
 # ---- cover asset index from every cover list already embedded in the page. Those lists carry no appid, so the key is
 # (name, review count): titles alone collide (two games are called "Portal").

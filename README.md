@@ -74,6 +74,7 @@ data/dash_offline.json     per-tag aggregates, ready to build
 data/assets.json           embedded covers (WebP, base64)
 data/games.json            per-game table for ad-hoc queries (tag combos, plans, similar games)
 scripts/db.js              in-browser query engine over data/games.json
+scripts/defs.py            success thresholds shared by export.py and export_games.py
 scripts/test_db.js         parity test: db.js must reproduce the per-tag aggregates
 scripts/studio.js, .css    Studio views (inlined at build via __FILE:name__)
 scripts/e2e.js, e2e.py     end-to-end checks that click through Studio in headless Chrome
