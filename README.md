@@ -38,7 +38,21 @@ Scope: tagged games released 2018–2024. A game succeeds when it reaches **500 
 
 A 2018 game has had seven years to collect reviews and a 2024 game barely one: the yearly success rate of tagged games falls from 11.1% (2018) to 7.6% (2024). Tags full of recent games therefore look worse than they are. The adjustment (`scripts/derive.py`) removes release year and nothing else. Findings, badges, rankings and the summary all use the adjusted rate; the detail panel shows both, plus the expected rate.
 
-Earlier versions offered owner- and gross-based definitions as well. They tracked the review definition closely (r = 0.84–0.88 across tags) on much coarser data, so they were removed; an upper-bound gross estimate (P90 and median) remains in the pricing chapter for reference.
+### Blue and red oceans: one rule, judged among peers
+
+The map badges, the detail-panel verdict, the tour, the summary and Studio's single-tag lanes all call one function, `classifyOceans` in `scripts/db.js`, on per-tag figures from the game table (`tagStats`). Each tag is compared only with the other tags of its faction (generic and outcome tags are not judged):
+
+| Class | Rule |
+|---|---|
+| Blue-ocean candidate | share of 2022–24 releases in the faction's bottom quarter, its typical game at least median attention, and the **low end** of its 95% success range above the faction's upper quartile |
+| Red-ocean risk | share of releases in the top quarter, typical game below median attention, and the **high end** of its 95% range below the faction median |
+| Crowded but strong | top-quarter share, low end of the range above the median |
+| Little attention | bottom-quarter share and below-median attention |
+| Mixed / too few games | anything else; under 40 games or fewer than 8 comparable tags |
+
+Success is the year-adjusted rate shown as "about X in 100", with its 95% range. Attention is the median, over the tag's games, of each game's review-count percentile among games released the same year. The map always judges by 500 reviews; Studio recomputes the classes for the success definition you pick and says when that differs from the map. `node scripts/backtest_oceans.js` sets the classes on 2018–20 releases and checks them on 2021–23: all 4 early candidates stayed above their faction median (180 of 909 distinct games, 19.8%, reached 500 reviews) and 25 of 29 red-ocean risks fell below it. Red-ocean tags are broad (Casual, 2D, Puzzle …), so their games together succeed about as often as the market (2,499 of 26,845 = 9.3%, against 2,514 of 27,082 = 9.3% for all games released 2021–23): the class says a tag trails its own peers, not that its games are unusually unlikely to succeed. Moving the window one year or the quartile cut to 20% / 30% flips borderline tags, so read the classes as a first filter, not a verdict.
+
+Earlier versions of the map offered owner- and gross-based definitions as well. They tracked the review definition closely (r = 0.84–0.88 across tags) on much coarser data, so they were removed; an upper-bound gross estimate (P90 and median) remains in the pricing chapter for reference. Studio still offers both (owners ≥ 200k, band top; estimated gross ≥ $1M) for its own views, labelled as such.
 
 ## How to use it
 
@@ -56,6 +70,7 @@ Earlier versions offered owner- and gross-based definitions as well. They tracke
 *Plan a game* and *Find a game* (on the world-select screen, in the map toolbar, or `Plan a game with <tag>` in a tag's panel) open **Studio**, which answers questions the tag map cannot, from a per-game table of 83,353 tagged games:
 
 - **Pick a lane** (developer): any tag combination. Success vs the market is *year-adjusted* (observed hits ÷ the hits expected from each game's release-year market rate), because recent games have had less time to collect reviews. Two badges keep performance (vs market, 95% range) and crowding (share of 2024 releases plus its direction) separate. A scatter and a ranked list show what one more tag does; a trend chart shows share of new releases and yearly success with honest intervals.
+  A *Review counts and store-page practice* card gives the lane's review-count P50 / P75 / P90 against all tagged games, and success by publishing (self-published or outside publisher), number of store screenshots (under 10, 10–19, 20+) and Early Access status, each adjusted to the lane's release-year mix with the same method as the plans, with 95% ranges; groups under 30 games show no rate.
 - **Compare plans** (developer): Plans A/B/C differ by price tier and number of languages (games listing no language join no tier). Each plan's chance is estimated per release year inside the lane, shrunk toward that year's lane rate, averaged with the lane's year mix, with joint within-year bootstrap intervals for plans and differences. *What if this plan changed one thing* holds languages or price fixed and only suggests a change whose paired 95% gain stays above zero. Playtime and launch year are deliberately left out (playtime exists for ~20% of games, and those succeed far more often: 46% vs about 1%).
 - **Find a game** (player): enter games you played, choose what matters (similar gameplay, rated at least as well, similar price, hidden gems). Candidates are scored per seed (IDF- and vote-rank-weighted tag overlap, ratings shrunk with a 20-review prior), 0.75 × best seed + 0.25 × second, then diversified. Every card states its reason using only the switched-on dimensions; picking one explains it and highlights it on comparison strips.
 
@@ -78,6 +93,7 @@ scripts/defs.py            success thresholds shared by export.py and export_gam
 scripts/test_db.js         parity test: db.js must reproduce the per-tag aggregates
 scripts/studio.js, .css    Studio views (inlined at build via __FILE:name__)
 scripts/e2e.js, e2e.py     end-to-end checks that click through Studio in headless Chrome
+scripts/backtest_oceans.js  backtest and stability check of the shared blue / red ocean rule
 steam_eda_report.md        first-round exploratory analysis (Chinese)
 tag_metrics.csv            one row per tag with the page's main metrics (python scripts/derive.py data/dash_offline.json tag_metrics.csv)
 tag_stats.csv, charts/     static outputs of the first-round EDA (older definitions)
@@ -98,11 +114,12 @@ The full pipeline from raw data (Python 3.12, `pip install -r requirements.txt`)
 3. `python scripts/export.py clean.pkl dash.json` builds per-tag aggregates for tags with ≥ 300 games from 2018–2024: success rate (raw and year-adjusted), market share, pricing, playtime, features, competition, co-tags, and top games.
 4. `python scripts/families.py dash.json tag_families.csv` drafts the faction mapping. **Skip this step** if you want to keep the hand-edited `tag_families.csv`.
 5. `python scripts/covers.py dash.json covers_cache data/dash_offline.json data/assets.json` downloads covers once from the Steam CDN, caches them, shrinks them, and replaces URLs with asset indices. This is the only step that touches the network.
-6. `python scripts/export_games.py clean.pkl data/dash_offline.json data/games.json` writes the per-game table: every tagged game (83k), with columns as base64 typed arrays and success flags computed once in Python. It reads thresholds, outcome tags and cover indices from `dash_offline.json`, so run it after step 5.
+6. `python scripts/export_games.py clean.pkl data/dash_offline.json data/games.json` writes the per-game table: every tagged game (83k), with columns as base64 typed arrays and success flags computed once in Python. It also stores the publishing type (no publisher listed / self-published, meaning a developer is also a publisher / outside publisher), the store screenshot count and an Early Access bit. It reads thresholds, outcome tags and cover indices from `dash_offline.json`, so run it after step 5.
 7. `node scripts/test_db.js data/games.json data/dash_offline.json` checks that `scripts/db.js` reproduces every per-tag aggregate (n, three success rates, price and language buckets, features, playtime, yearly share). Run it whenever `export.py`, `export_games.py` or `db.js` changes.
 8. Run `build.py` as above. The games table and `db.js` are inlined only where the template contains `__GAMES__` and `__FILE:db.js__`.
 9. `python scripts/game_covers.py clean.pkl data/games.json covers_cache covers` fetches a thumbnail for every game Studio can recommend that has no embedded cover (the dataset's image URL first, Steam's official header for the same AppID second), checks it decodes and writes `covers/<appid>.webp` (230×107, ~4 KB). It is incremental, and `covers/_report.json` lists totals, failures and size. The folder (~100 MB for 23.6k games) is too large to embed, so ship it next to the HTML file; without it the page shows game names instead.
-10. `python scripts/e2e.py` clicks through all three tasks in headless Chrome and prints PASS/FAIL (`E2E_LANG=zh` for Chinese).
+10. `node scripts/backtest_oceans.js` prints the backtest and stability check of the blue / red ocean rule (see above).
+11. `python scripts/e2e.py` clicks through all three tasks in headless Chrome and prints PASS/FAIL (`E2E_LANG=zh` for Chinese).
 
 Optional EDA: `scripts/overview.py`, `scripts/tags.py clean.pkl tag_stats.csv`, and `scripts/charts.py clean.pkl tag_stats.csv charts`.
 
@@ -116,10 +133,11 @@ Optional EDA: `scripts/overview.py`, `scripts/tags.py clean.pkl tag_stats.csv`, 
 
 - All comparisons are correlations, not causes.
 - The dataset has no wishlists, first-week sales, review velocity around launch, or real sales figures. "Success" can only mean lifetime review count.
-- Cover art, the mosaic, and the most-reviewed games and developers are drawn from all years; every other figure covers 2018–2024.
+- Cover art and the mosaic are drawn from all years (a tag's best-known games are often older); the most-reviewed games, the developers and every other figure cover 2018–2024.
 - Popular games carry more tags, so niche tags show higher success rates overall. Relative order is more reliable than absolute values.
 - "Outcome" tags such as *Great Soundtrack* or *Classic* are often added after a game succeeds. They are hidden by default and can be shown from *Filter & search*.
 - Games released in 2025 have not had time to collect reviews, so they are excluded from the success-rate analysis.
+- Early Access is Steam's genre at the time the data was collected; a game that has since fully launched no longer carries it, so it describes the snapshot, not a game's history. The source has no usable video field (every value is empty), so trailers are not analysed.
 - Group values are medians across the tags in a group, not a deduplicated rate over all their games.
 
 ## Credits

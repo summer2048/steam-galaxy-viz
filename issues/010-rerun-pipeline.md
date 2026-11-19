@@ -2,11 +2,11 @@
 
 | 字段 | 值 |
 |---|---|
-| 状态 | open |
+| 状态 | done |
 | 优先级 | P2 |
 | 类型 | data |
 | 创建 | 2026-11-14 |
-| 更新 | 2026-11-14 |
+| 更新 | 2026-11-18 |
 | 涉及文件 | scripts/export.py, data/dash_offline.json |
 | 关联 | 002, 005, 006, 007, 008 |
 
@@ -27,8 +27,10 @@
 3. 趁这次重跑做 006 的剩余项、007、008。
 
 ## 验收标准
-- `export.py` 在真实数据上跑通，`data/dash_offline.json` 更新。
-- `hit_adj` 在重跑前后的差异有记录。
+- [x] `export.py` 在真实数据上跑通，`data/dash_offline.json` 更新。
+- [x] `hit_adj` 在重跑前后的差异有记录。
 
 ## 记录
 - 2026-11-14：创建。
+- 2026-11-18：用 lofi-prototype/clean.pkl（125,855 款）和 Windows Python 3.12 + pandas 重跑步骤 3–7：export.py → covers.py → export_games.py → test_db → build。export.py 在真实数据上跑通。新旧对比：309 个标签集合和游戏数完全一致；base.year_t 与 derive.py 反推值只有 2019 年游戏数差 2（6,672 vs 6,674），成功数全部一致；hit_adj 新旧差的中位数 0、最大 0.0001（Hex Grid 0.1162 vs 0.1163），没有标签超过 0.005。002/005 的字段改动（删掉的 share/pstat 字段等）现在真正写进了 data/dash_offline.json。assets.json 和 games.json 与重跑前逐字节相同。e2e 31 项中英文通过。
+- 2026-11-18：更正：证据一节说删除了 meta.own_t、meta.gross_t，实际 013 为了让 Studio 的逐款导出共用阈值又保留了这两项（scripts/defs.py），重跑后的 JSON 里仍有。tag_metrics.csv 已按新数据重新生成。

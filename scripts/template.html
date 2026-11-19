@@ -166,8 +166,6 @@ table.dt tbody tr.co{cursor:pointer}
 .bossname b{font-size:18px;font-family:var(--display);font-stretch:semi-condensed;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bossname .meta{font-size:12px;color:var(--ink2);white-space:nowrap}
 .threat{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:6px;white-space:nowrap}
-.threat .stars{letter-spacing:2px;font-size:14px;color:var(--ink)}
-.threat .stars i{font-style:normal;color:var(--axis)}
 .threat b{color:var(--ink)}
 .hpbar{position:relative;height:26px;border-radius:8px;background:var(--grid);overflow:hidden;
   border:2px solid color-mix(in srgb,var(--ink) 70%,transparent);box-shadow:inset 0 2px 4px rgba(0,0,0,.25)}
@@ -352,6 +350,8 @@ body.panel-open #langBtn{right:calc(min(560px, 46vw) + 16px)}
 .right .grid2{grid-template-columns:1fr}
 tr.gm{cursor:pointer}
 tr.gm:hover{background:var(--grid)}
+tr.gm.nocv{cursor:default}
+tr.gm.nocv:hover{background:none}
 tr.gm.pinned{box-shadow:inset 3px 0 0 var(--sel);background:var(--grid)}
 .cue2{text-align:center;color:var(--ink2);font-size:13px;letter-spacing:.08em;margin-top:30px;animation:cueBob 1.8s ease-in-out infinite}
 @media (max-width:820px){.layout .right{width:auto;left:12px;top:auto;height:60vh}}
@@ -599,7 +599,7 @@ body.panel-open #ui3 .kicker{margin-bottom:0}
 .grw .gnm{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .grw.hot{background:rgba(255,255,255,.1)}
 .gnote{font-size:11.5px;color:var(--muted);margin:8px 0 0}
-@media (max-width:820px){.layout .right{width:auto;left:12px;right:12px;top:auto;bottom:0;height:62vh;border-radius:16px 16px 0 0}.layout.open .right{display:block}.pA{position:static}body.panel-open #langBtn{right:16px;bottom:calc(62vh + 10px)}body.panel-open #ui3{right:20px}#zoomUI .enc{display:none}}
+@media (max-width:820px){.layout .right{width:auto;left:12px;right:12px;top:auto;bottom:0;height:62vh;border-radius:16px 16px 0 0}.layout.open .right{display:block}.pA{position:static}body.panel-open #langBtn{right:16px;top:auto;bottom:calc(62vh + 10px)}body.panel-open #conLegend{max-width:calc(100% - 110px);bottom:calc(62vh + 12px);flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 12px}@media (max-width:560px){body.panel-open #conLegend{font-size:11px;flex-wrap:nowrap;white-space:nowrap;gap:10px;bottom:calc(62vh + 8px)}.pA .banner{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;row-gap:0;align-items:start;padding:12px 12px 10px;min-height:0}.pA .banner .hinfo{display:contents}.pA .banner .hcover{grid-row:1 / span 3}.pA .banner .hinfo > *{grid-column:2}.pA .banner .hinfo > .st-hacts{grid-column:1 / -1}.pA .hcover img{width:84px}.pA .hcover .hsel{display:none}.banner:not(.gamesel) #heroGame .hs{display:none}#crumbs .chint{display:none}.pA{display:flex;flex-direction:column}.pA > #tagFirst{order:-1}}body.panel-open #ui3{right:20px}#zoomUI .enc{display:none}}
 /* ---- data review (issues/001): intervals in small print, thin samples fade ---- */
 .ci{display:block;font-size:10.5px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 table.dt tr.thin td{opacity:.5}
@@ -744,8 +744,8 @@ __FILE:studio.css__
   </div>
   <div class="pB">
   <div class="reelhint" id="reelHint">在面板上继续下滑，查看完整数据 ↓</div>
-  <div class="boss card" id="boss"></div>
   <div id="panel"></div>
+  <div class="boss card" id="boss"></div>
   </div>
     </div></div>
   </div>
@@ -755,6 +755,10 @@ __FILE:studio.css__
 <button id="langBtn" type="button" aria-label="Switch language"></button>
 
 
+<script type="application/json" id="gamesRaw">__GAMES__</script>
+<script>
+__FILE:db.js__
+</script>
 <script>
 // ---- Language: English by default, Chinese on request (?lang=zh or the toggle). ----
 const LANG = (() => { try { const q = new URLSearchParams(location.search).get('lang'); if (q === 'zh' || q === 'en') { localStorage.setItem('stm-lang', q); return q; } return localStorage.getItem('stm-lang') || 'en'; } catch (e) { return 'en'; } })();
@@ -1182,8 +1186,9 @@ const TABS = {
   comp() {
     return [card('cpStats', w('开发商结构'), '', { wide: true }),
       card('cpCo', w('常见组合标签'), w('同时带有该标签的游戏中，最常见的其他标签（已排除 Indie、Action 等泛标签）'), { wide: true }),
-      card('cpDev', w('评价数最多的开发商'), w('该标签下（全部年份）')),
-      card('cpTop', w('评价数最多的游戏'), tx('该标签下（全部年份）· 点击一款游戏，星图上的球就固定显示它', 'In this tag, all years · click a game to pin it on its ball'))].join('');
+      card('cpDev', w('评价数最多的开发商'), w('该标签下 2018–2024 发行的游戏')),
+      card('cpTop', w('评价数最多的游戏'), tx('该标签下 2018–2024 发行的游戏 · 点击一款游戏，星图上的球就固定显示它', 'In this tag, released 2018–2024 · click a game to pin it on its ball')),
+      card('cpGem', tx('遗珠：评价不多、好评很高', 'Hidden gems: few reviews, very well rated'), tx('2018–2024 发行、评价数 50–500、非成人内容且商店有封面图，按好评率 95% 区间的下限排序，所以 50 条全好评不会自动排在 400 条 97% 好评前面', 'Released 2018–2024, 50–500 reviews, no adult content and a store image, ranked by the low end of the 95% range of the positive share, so 50 reviews at 100% do not automatically beat 400 at 97%'))].join('');
   },
 };
 const FILL = {
@@ -1300,22 +1305,48 @@ const FILL = {
     document.getElementById('cpDev').innerHTML = `<table class="dt"><thead><tr><th>${w('开发商')}</th><th>${w('游戏')}</th><th>${w('成功')}</th><th>${w('评价数')}</th></tr></thead><tbody>${
       d.devs.map(x => `<tr><td>${esc(x.name)}</td><td>${x.games}</td><td>${x.hits}</td><td>${fmt(x.reviews)}</td></tr>`).join('')}</tbody></table>`;
     document.getElementById('cpTop').innerHTML = `<table class="dt"><thead><tr><th>${w('游戏')}</th><th>${w('年份')}</th><th>${w('原价')}</th><th>${w('拥有量')}</th><th>${w('评价数')}</th><th>${w('好评')}</th><th>${w('中位时长')}</th></tr></thead><tbody>${
-      d.top.map(g => { const cv = d.covers.find(x => x.n === g.name); return `<tr class="gm${cv && state.pins[name] === cv.i ? ' pinned' : ''}" data-g="${cv ? cv.i : ''}"><td style="text-align:left">${cv ? `<img class="gthumb" src="${coverSrc(cv)}" alt="">` : ''}${esc(g.name)}</td><td>${g.year}</td><td>${g.price ? money(g.price) : w('免费')}</td><td>${g.owners ? w(g.owners) : '—'}</td><td>${fmt(g.reviews)}</td><td>${pct(g.pos)}</td><td>${hours(g.play)}</td></tr>`; }).join('')}</tbody></table>`;
+      d.top.map(g => { const cv = d.covers.find(x => x.n === g.name) || d.games.find(x => x.n === g.name); return `<tr class="gm${cv ? '' : ' nocv'}${cv && state.pins[name] === cv.i ? ' pinned' : ''}" data-g="${cv ? cv.i : ''}"><td style="text-align:left">${cv ? `<img class="gthumb" src="${coverSrc(cv)}" alt="">` : ''}${esc(g.name)}</td><td>${g.year}</td><td>${g.price ? money(g.price) : w('免费')}</td><td>${g.owners ? w(g.owners) : '—'}</td><td>${fmt(g.reviews)}</td><td>${pct(g.pos)}</td><td>${hours(g.play)}</td></tr>`; }).join('')}</tbody></table>`;
+    { const el = document.getElementById('cpGem');
+      if (!name) el.innerHTML = `<div class="empty">${tx('在主图中选中一个标签，查看它的遗珠', 'Select a tag on the map to see its hidden gems')}</div>`;
+      else { const D = GDB(), gs = D.gems(name);
+        el.innerHTML = !gs.length ? `<div class="empty">${tx('这个标签里没有符合条件的游戏。', 'No game in this tag meets the rule.')}</div>` :
+          `<table class="dt"><thead><tr><th>${w('游戏')}</th><th>${w('年份')}</th><th>${w('原价')}</th><th>${w('评价数')}</th><th>${w('好评')}</th><th>${tx('95% 下限', '95% low end')}</th></tr></thead><tbody>${
+          gs.map(x => { const g = D.game(x.r), i = g.i; return `<tr class="gm${i == null ? ' nocv' : ''}${i != null && state.pins[name] === i ? ' pinned' : ''}" data-g="${i == null ? '' : i}"><td style="text-align:left">${i != null ? `<img class="gthumb" src="${coverSrc({ i })}" alt="">` : ''}${esc(g.n)}</td><td>${g.y}</td><td>${g.c ? '$' + g.c.toFixed(2) : w('免费')}</td><td>${fmt(x.n)}</td><td>${pct(x.p)}</td><td>${pct(x.lb)}</td></tr>`; }).join('')}</tbody></table>`; } }
   },
 };
 
-function achievements(d) {
-  const out = [], s = d.share, r = s.reviews / s.games, h = s.hits / s.games, medN = median(visibleTags().map(t => T[t].n));
+// ---- one game table and one blue / red ocean rule for the map badges, the verdict, the tour, the summary and Studio (issue 023) ----
+const GDB = (() => { let d = null; return () => d || (d = GameDB.open(JSON.parse(document.getElementById('gamesRaw').textContent))); })();
+const OCEAN_FAM = t => T[t] && !T[t].outcome && famOf(t).key !== 'other' ? famOf(t).key : null;   // generic and outcome tags are not judged
+const oceans = (def = 'hit') => GDB().oceans(def, OCEAN_FAM);
+const OCEAN = { blue: ['trophy', () => w('蓝海候选')], red: ['wave', () => w('红海风险')], busy: ['swords', () => w('拥挤但表现强')], quiet: ['cozy', () => w('关注有限')],
+  mixed: ['action', () => w('证据混合')], thin: ['flask', () => w('证据不足')] };
+// what "success" means in a sentence, per definition (the map always uses 500 reviews; Studio can switch)
+const OCEAN_GOAL = { hit: () => tx('达到 500 条评价', 'reached 500 reviews'), hit_o: () => tx('持有量上限达到 20 万', 'reached 200k owners (band top)'), hit_g: () => tx('估算流水达到 $100 万', 'reached an estimated $1M gross') };
+function oceanWhy(o, def = 'hit') {
+  const R = o.ref, f = famOf(o.tag).name, per = Math.round(o.rate * 100), goal = (OCEAN_GOAL[def] || OCEAN_GOAL.hit)();
+  const count = tx(`${fmt(o.n)} 款中有 ${fmt(o.hits)} 款${goal}（${pct(o.hits / o.n, 1)}）。`, `${fmt(o.hits)} of ${fmt(o.n)} games ${goal} (${pct(o.hits / o.n, 1)}).`);
+  const range = tx(`按发行年份校正后约每百款 ${per} 款（95% 区间 ${pct(o.lo, 1)}–${pct(o.hi, 1)}）。`, ` Year-adjusted, about ${per} in 100 (95% range ${pct(o.lo, 1)}–${pct(o.hi, 1)}).`);
+  if (o.cls === 'thin') return count + range + (o.n < 40 ? tx('游戏少于 40 款，不做判断。', 'Fewer than 40 games, so no call is made.') : tx(`「${f}」里可比较的标签不到 8 个，没有参照，不做判断。`, `${f} has fewer than 8 comparable tags, so there is nothing to judge it against.`));
+  const pos = (v, lo, hi) => v <= lo ? tx('偏低', 'low') : v >= hi ? tx('偏高', 'high') : tx('中等', 'middling');
+  return count + tx(`按发行年份校正后，约每百款 ${per} 款（95% 区间 ${pct(o.lo, 1)}–${pct(o.hi, 1)}；「${f}」${R.peers} 个标签的中位 ${pct(R.rateMed, 1)}，上四分位 ${pct(R.rateHi, 1)}）。2022–24 新作份额 ${pct(o.supply, 2)}，在同类中${pos(o.supply, R.supLo, R.supHi)}（四分位 ${pct(R.supLo, 2)}–${pct(R.supHi, 2)}）；典型作品的评价数排在同年游戏的第 ${Math.round(o.attention * 100)} 百分位（同类中位 ${Math.round(R.attMed * 100)}）。`,
+    ` Year-adjusted, about ${per} in 100 (95% range ${pct(o.lo, 1)}–${pct(o.hi, 1)}; median of the ${R.peers} ${f} tags ${pct(R.rateMed, 1)}, upper quartile ${pct(R.rateHi, 1)}). Its share of 2022–24 releases, ${pct(o.supply, 2)}, is ${pos(o.supply, R.supLo, R.supHi)} for its kind (quartiles ${pct(R.supLo, 2)}–${pct(R.supHi, 2)}); its typical game ranks at the ${Math.round(o.attention * 100)}th percentile of same-year games by reviews (faction median ${Math.round(R.attMed * 100)}).`);
+}
+const OCEAN_BADGE = new Set(['blue', 'red', 'busy', 'quiet']);   // map badges are highlights; mixed and thin show only in Studio
+// 011: "dominated by one game" is relative: the top tenth of map tags by the top game's share of reviews, not a fixed 30%
+const TOP1_CUT = (() => { const a = Object.values(T).map(d => d.conc.top1).sort((x, y) => x - y); return a[Math.floor(a.length * .9)]; })();
+function achievements(d, name) {
+  const out = [], s = d.share, r = s.reviews / s.games, h = s.hits / s.games;
   const zh = d.feats['中文'], bz = B.feats['中文'], c = d.comp;
   const zr = zh.hit_with != null && zh.hit_without ? zh.hit_with / zh.hit_without : null, bzr = bz.hit_with / bz.hit_without;
-  if (adj(d) >= 1.8 * B.hit && d.n <= medN) out.push(['trophy', w('蓝海'), tx(`和同年游戏比，成功率 ${pct(adj(d), 1)} 是基准的 ${(adj(d) / B.hit).toFixed(1)} 倍，且供给 ${fmt(d.n)} 款低于标签中位数 ${fmt(Math.round(medN))}`, `Against same-year games, its success rate ${pct(adj(d), 1)} is ${(adj(d) / B.hit).toFixed(1)}× the baseline, with ${fmt(d.n)} games, below the median tag's ${fmt(Math.round(medN))}`)]);
-  if (r >= 1.5) out.push(['flame', w('需求旺盛'), tx(`评价份额是游戏数份额的 ${r.toFixed(1)} 倍`, `Review share is ${r.toFixed(1)}× its share of games`)]);
-  if (d.conc.top1 >= 0.3) out.push(['crown', w('巨头统治'), tx(`第 1 名独占 ${pct(d.conc.top1)} 的评价`, `The top game alone takes ${pct(d.conc.top1)} of reviews`)]);
-  if (h >= 1.2 && r < 1) out.push(['cozy', w('稳定小成功'), tx(`成功作品份额是供给的 ${h.toFixed(1)} 倍，但评价份额只有 ${r.toFixed(1)} 倍：中等体量的成功多，爆款少`, `Share of hits is ${h.toFixed(1)}× supply, but review share only ${r.toFixed(1)}×: many mid-sized wins, few breakouts`)]);
-  if (adj(d) < 0.8 * B.hit && d.n >= 3000) out.push(['wave', w('红海'), tx(`供给 ${fmt(d.n)} 款，和同年游戏比，成功率只有基准的 ${(adj(d) / B.hit).toFixed(1)} 倍`, `${fmt(d.n)} games; against same-year games, a success rate only ${(adj(d) / B.hit).toFixed(1)}× the baseline`)]);
-  if (d.recent >= 0.7) out.push(['rocket', w('新兴赛道'), tx(`${pct(d.recent)} 的游戏是 2022 年后发行的${d.grow && d.grow.rel ? `；发行份额是 2018–2020 年的 ${d.grow.rel.toFixed(1)} 倍` : ''}`, `${pct(d.recent)} of its games came out in 2022 or later${d.grow && d.grow.rel ? `; its share of releases is ${d.grow.rel.toFixed(1)}× what it was in 2018–2020` : ''}`)]);
-  if (d.score != null && d.score >= 0.9) out.push(['gem', w('口碑之选'), tx(`中位好评率 ${pct(d.score)}`, `Median rating ${pct(d.score)}`)]);
-  if (zr != null && zr >= bzr * 1.3) out.push(['zh', w('中文加成'), tx(`支持中文的成功率是不支持的 ${zr.toFixed(1)} 倍，高于整体的 ${bzr.toFixed(1)} 倍（相关，非因果）`, `With Chinese support the success rate is ${zr.toFixed(1)}× higher, above the overall ${bzr.toFixed(1)}× (correlation, not causation)`)]);
+  const oc = name && oceans()[name];
+  if (oc && OCEAN_BADGE.has(oc.cls)) out.push([OCEAN[oc.cls][0], OCEAN[oc.cls][1](), oceanWhy(oc)]);
+  if (r >= 1.5) out.push(['flame', w('需求旺盛'), tx(`评价份额是游戏数份额的 ${r.toFixed(1)} 倍（门槛 1.5 倍）`, `Review share is ${r.toFixed(1)}× its share of games (badge from 1.5×)`)]);
+  if (d.conc.top1 >= TOP1_CUT) out.push(['crown', w('巨头统治'), tx(`第 1 名独占 ${pct(d.conc.top1)} 的评价，在地图上的标签里排前 10%`, `The top game alone takes ${pct(d.conc.top1)} of reviews, in the top tenth of map tags`)]);
+  if (h >= 1.2 && r < 1) out.push(['cozy', w('稳定小成功'), tx(`成功作品份额是供给的 ${h.toFixed(1)} 倍，但评价份额只有 ${r.toFixed(1)} 倍：中等体量的成功多，爆款少（门槛：成功份额 ≥ 1.2 倍且评价份额 < 1 倍）`, `Share of hits is ${h.toFixed(1)}× supply, but review share only ${r.toFixed(1)}×: many mid-sized wins, few breakouts (badge: hits ≥ 1.2× and reviews < 1×)`)]);
+  if (d.recent >= 0.7) out.push(['rocket', w('新兴赛道'), tx(`${pct(d.recent)} 的游戏是 2022 年后发行的（门槛 70%）${d.grow && d.grow.rel ? `；发行份额是 2018–2020 年的 ${d.grow.rel.toFixed(1)} 倍` : ''}`, `${pct(d.recent)} of its games came out in 2022 or later (badge from 70%)${d.grow && d.grow.rel ? `; its share of releases is ${d.grow.rel.toFixed(1)}× what it was in 2018–2020` : ''}`)]);
+  if (d.score != null && d.score >= 0.9) out.push(['gem', w('口碑之选'), tx(`中位好评率 ${pct(d.score)}（门槛 90%）`, `Median rating ${pct(d.score)} (badge from 90%)`)]);
+  if (zr != null && zr >= bzr * 1.3) out.push(['zh', w('中文加成'), tx(`支持中文的成功率是不支持的 ${zr.toFixed(1)} 倍，高于整体的 ${bzr.toFixed(1)} 倍（门槛：整体的 1.3 倍；相关，非因果）`, `With Chinese support the success rate is ${zr.toFixed(1)}× higher, above the overall ${bzr.toFixed(1)}× (badge from 1.3× the overall; correlation, not causation)`)]);
   if (c.hit_debut != null && c.hit_vet != null && c.hit_debut >= c.hit_vet) out.push(['flask', w('新人友好'), tx(`首作成功率 ${pct(c.hit_debut, 1)} 不低于老手作品的 ${pct(c.hit_vet, 1)}`, `Debut success ${pct(c.hit_debut, 1)} is no lower than veterans' ${pct(c.hit_vet, 1)}`)]);
   return out;
 }
@@ -1323,7 +1354,7 @@ const ACH_TOTAL = 9;
 let achList = [];
 function drawAchievements(name, d, animate) {
   const host = document.getElementById('achv');
-  achList = name ? achievements(d) : [];
+  achList = name ? achievements(d, name) : [];
   host.parentElement.classList.toggle('anim-badges', !!animate && motionOK());
   const shown = state.achAll ? achList : achList.slice(0, 3), rest = achList.length - shown.length;
   host.innerHTML = shown.map((a, i) => `<span class="ach" data-i="${i}" style="--i:${i}"><span style="color:var(--sel)">${icon(a[0], 14)}</span>${a[1]}</span>`).join('')
@@ -1338,15 +1369,13 @@ function drawBoss(name, d, animate) {
   const host = document.getElementById('boss'), c = d.conc;
   const s1 = c.top1, s2 = Math.max(0, c.top10 - c.top1), s3 = Math.max(0, 1 - c.top10);
   const boss = d.top.find(g => g.year >= 2018 && g.year <= 2024), bossCover = boss && d.covers.find(g => g.n === boss.name);
-  const stars = c.top10 >= 0.75 ? 5 : c.top10 >= 0.6 ? 4 : c.top10 >= 0.45 ? 3 : c.top10 >= 0.3 ? 2 : 1;
-  const tier = s1 >= 0.3 ? ['crown', w('Boss 独霸')] : c.top10 >= 0.6 ? ['swords', w('精英怪群')] : c.top10 >= 0.35 ? ['action', w('头部偏强')] : ['rpg', w('群雄割据')];
   const restN = Math.max(0, d.n - 10);
   host.classList.toggle('anim', !!animate && motionOK());
   host.classList.toggle('open', !!state.bossOpen);
   host.innerHTML = tx(`
     <div class="bosstop">
       <div class="bossname">${bossCover ? `<img class="bossimg" src="${coverSrc(bossCover)}" alt="">` : ''}<span class="crown" style="color:var(--sel)">${icon('crown', 22)}</span><span class="lv">BOSS</span><b>${boss ? esc(boss.name) : '—'}</b><span class="meta">${boss ? `${boss.year} · ${fmt(boss.reviews)} 评价` : ''}</span></div>
-      <div class="threat">挑战难度 <span class="stars" aria-label="${stars} / 5">${'★'.repeat(stars)}<i>${'★'.repeat(5 - stars)}</i></span><b><span style="color:var(--sel)">${icon(tier[0], 14)}</span> ${tier[1]}</b></div>
+      <div class="threat">前 10 名拿走 <b>${pct(c.top10)}</b> 的评价</div>
     </div>
     <div class="hpbar" role="img" aria-label="${esc(name || '全部游戏')}的评价份额：第 1 名 ${pct(s1, 1)}，第 2 到 10 名 ${pct(s2, 1)}，其余 ${pct(s3, 1)}">
       <div class="hpfill"><i class="seg s1" style="width:${s1 * 100}%"></i><i class="seg s2" style="width:${s2 * 100}%"></i><i class="seg s3" style="width:${s3 * 100}%"></i></div>
@@ -1363,7 +1392,7 @@ function drawBoss(name, d, animate) {
     </div></div>`, `
     <div class="bosstop">
       <div class="bossname">${bossCover ? `<img class="bossimg" src="${coverSrc(bossCover)}" alt="">` : ''}<span class="crown" style="color:var(--sel)">${icon('crown', 22)}</span><span class="lv">BOSS</span><b>${boss ? esc(boss.name) : '—'}</b><span class="meta">${boss ? `${boss.year} · ${fmt(boss.reviews)} reviews` : ''}</span></div>
-      <div class="threat">Difficulty <span class="stars" aria-label="${stars} / 5">${'★'.repeat(stars)}<i>${'★'.repeat(5 - stars)}</i></span><b><span style="color:var(--sel)">${icon(tier[0], 14)}</span> ${tier[1]}</b></div>
+      <div class="threat">The top 10 take <b>${pct(c.top10)}</b> of reviews</div>
     </div>
     <div class="hpbar" role="img" aria-label="Review share for ${esc(name || 'all games')}: top game ${pct(s1, 1)}, games 2 to 10 ${pct(s2, 1)}, the rest ${pct(s3, 1)}">
       <div class="hpfill"><i class="seg s1" style="width:${s1 * 100}%"></i><i class="seg s2" style="width:${s2 * 100}%"></i><i class="seg s3" style="width:${s3 * 100}%"></i></div>
@@ -1386,11 +1415,14 @@ function drawBoss(name, d, animate) {
 }
 function verdict(name, d) {
   if (!name) return `${w('2018–2024 年，有标签的游戏里只有')} <b>${pct(d.hit, 1)}</b> ${w('拿到 500 条评价。')}`;
-  const s = d.share, r = s.reviews / s.games, h = s.hits / s.games, x = (adj(d) / B.hit).toFixed(1), medN = median(visibleTags().map(t => T[t].n));
+  const s = d.share, r = s.reviews / s.games, h = s.hits / s.games;
   const boss = d.top.find(g => g.year >= 2018 && g.year <= 2024);
-  if (adj(d) < 0.8 * B.hit && d.n >= 3000) return tx(`这里很拥挤：${fmt(d.n)} 款游戏，成功率只有基准的 ${x} 倍。`, `Crowded: ${fmt(d.n)} games, and a success rate only ${x}× the baseline.`);
-  if (d.conc.top1 >= 0.3 && boss) return tx(`${esc(boss.name)} 一款就拿走了 ${pct(d.conc.top1)} 的评价，其他游戏在抢剩下的。`, `${esc(boss.name)} alone takes ${pct(d.conc.top1)} of the reviews; everyone else fights over the rest.`);
-  if (adj(d) >= 1.8 * B.hit && d.n <= medN) return tx(`这里还有机会：成功率是基准的 ${x} 倍，竞争者却不多。`, `There is room here: ${x}× the baseline success rate, and few competitors.`);
+  const oc = oceans()[name], per = oc ? Math.round(oc.rate * 100) : 0;
+  if (oc && oc.cls === 'red') return tx(`红海风险：新作多、典型作品少有人看，约每百款只有 ${per} 款成功，低于同类。`, `Red-ocean risk: many new games, the typical one goes unnoticed, and only about ${per} in 100 succeed, below its peers.`);
+  if (d.conc.top1 >= TOP1_CUT && boss) return tx(`${esc(boss.name)} 一款就拿走了 ${pct(d.conc.top1)} 的评价，其他游戏在抢剩下的。`, `${esc(boss.name)} alone takes ${pct(d.conc.top1)} of the reviews; everyone else fights over the rest.`);
+  if (oc && oc.cls === 'blue') return tx(`蓝海候选：新作少、典型作品有人看，约每百款 ${per} 款成功，明显高于同类。`, `Blue-ocean candidate: few new games, the typical one gets noticed, and about ${per} in 100 succeed, clearly above its peers.`);
+  if (oc && oc.cls === 'busy') return tx(`拥挤但表现强：新作很多，约每百款仍有 ${per} 款成功，高于同类。`, `Crowded but strong: lots of new games, yet about ${per} in 100 still succeed, above its peers.`);
+  if (oc && oc.cls === 'quiet') return tx(`关注有限：新作少，但典型作品也少有人看。`, `Little attention: few new games, but the typical one goes unnoticed too.`);
   if (r >= 1.5) return tx(`玩家的关注远多于供给：评价份额是游戏数份额的 ${r.toFixed(1)} 倍。`, `Players pay far more attention than supply suggests: review share is ${r.toFixed(1)}× the share of games.`);
   if (h >= 1.2 && r < 1) return w('这里容易小成功，但很难出大爆款。');
   if (h < 0.8) return w('成功率低于平均，大部分游戏很难被看见。');
@@ -1517,7 +1549,22 @@ function setHero(g, d) {
   document.getElementById('heroGame').innerHTML = `<b>${esc(g.n)}</b><span class="hs">${bits.join(' · ')}</span>`;
   document.querySelectorAll('#mosaic .gt[data-i]').forEach(n => n.classList.toggle('sel', +n.dataset.i === g.i));
 }
-const findGame = (d, i) => d.games.find(x => x.i === i) || d.covers.find(x => x.i === i);
+let coverRow = null;
+function gameByCover(i) {   // the per-game table in the shape of the tag lists: {n, i, r, p, c, y, ow, h}
+  const D = GDB(); if (!coverRow) { coverRow = new Map(); D.col.cover.forEach((c, r) => { if (c >= 0 && !coverRow.has(c)) coverRow.set(c, r); }); }
+  const r = coverRow.get(i); if (r == null) return null;
+  const g = D.game(r); return { n: g.n, i, r: g.rv, p: g.p, c: g.c, y: g.y, ow: g.ow, h: g.h };
+}
+function conLegend(t) {
+  const leg = document.getElementById('conLegend');
+  leg.innerHTML = t ? tx(`<span><span style="display:inline-block;width:26px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px;background:linear-gradient(90deg,#fff,${cssVar(famColor(famOf(t)))})"></span>线越亮 = 组合成功率越高</span><span>线越粗 = 同时出现越多</span>`, `<span><span style="display:inline-block;width:26px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px;background:linear-gradient(90deg,#fff,${cssVar(famColor(famOf(t)))})"></span>Brighter = higher pair success</span><span>Thicker = appear together more</span>`) : '';
+  if (t && innerWidth <= 560) {   // phones: the full legend wraps under the map controls (issue 030); same meaning, shorter words
+    const sw = bg => `<span style="display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:3px;margin-right:4px;background:${bg}"></span>`;
+    leg.innerHTML = `<span>${sw(`linear-gradient(90deg,#fff,${cssVar(famColor(famOf(t)))})`)}${tx('越亮 = 成功率越高', 'Brighter = more success')}</span><span>${sw('rgba(255,255,255,.75)')}${tx('越粗 = 越常一起出现', 'Thicker = paired more')}</span>`;
+  }
+}
+addEventListener('resize', () => { clearTimeout(conLegend.rt); conLegend.rt = setTimeout(() => conLegend(state.locked && T[state.locked] ? state.locked : null), 150); });
+const findGame = (d, i) => d.games.find(x => x.i === i) || d.covers.find(x => x.i === i) || (state.game && state.game.i === i ? gameByCover(i) : null);
 function heroFollow(i) { const { name, d } = current(); if (name && !state.game) { const g = findGame(d, i); if (g) setHero(g, d); } }
 function layoutMosaic() {
   const { d } = current(), host = document.getElementById('mosaic'), right = document.querySelector('.right'), m = METRICS.find(x => x.k === state.gm);
@@ -1568,7 +1615,7 @@ function refreshSel() {
   const { name, d } = current();
   drawCrumbs(); document.getElementById('mosaic').classList.toggle('has', !!state.game);
   setHero(state.game ? findGame(d, state.game.i) : (name && findGame(d, M.currentGame(name))) || d.games[0], d);
-  document.querySelectorAll('#panel tr.gm').forEach(r => r.classList.toggle('pinned', !!state.game && +r.dataset.g === state.game.i));
+  document.querySelectorAll('#panel tr.gm').forEach(r => r.classList.toggle('pinned', !!state.game && r.dataset.g !== '' && +r.dataset.g === state.game.i));
   M.kick();
 }
 function setSM(k) {
@@ -1729,8 +1776,7 @@ function lock(t, stop = -1, keepAll = false) {
   M.onLock(open && !wasOpen);
   drawLinked(true);
   if (open && !state.tab) document.querySelector('.right').scrollTop = 0;
-  const leg = document.getElementById('conLegend');
-  leg.innerHTML = t ? tx(`<span><span style="display:inline-block;width:26px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px;background:linear-gradient(90deg,#fff,${cssVar(famColor(famOf(t)))})"></span>线越亮 = 组合成功率越高</span><span>线越粗 = 同时出现越多</span>`, `<span><span style="display:inline-block;width:26px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px;background:linear-gradient(90deg,#fff,${cssVar(famColor(famOf(t)))})"></span>Brighter = higher pair success</span><span>Thicker = appear together more</span>`) : '';
+  conLegend(t);
   state.lockAt = exploreT();
   if (open && (exploreT() < REST_T - .15 || exploreT() > PH.ROT_END)) { toBottom(); state.lockAt = REST_T + .05; }
 }
@@ -1824,10 +1870,12 @@ function enterWorld(key, tag) {
 const visible = t => T[t] && (state.showOutcome || !T[t].outcome);
 function tourStops() {
   const stops = [];
-  if (visible('2D Platformer')) { const d = T['2D Platformer']; stops.push({ icon: 'wave', title: w('红海'), tag: '2D Platformer', chapter: 'market',
-    text: tx(`${fmt(d.n)} 款、中位好评率 <b>${pct(d.score)}</b>，成功率却只有 <b>${pct(adj(d), 1)}</b>：好游戏也会被淹没`, `${fmt(d.n)} games, median rating <b>${pct(d.score)}</b>, yet a success rate of only <b>${pct(adj(d), 1)}</b>: good games get buried`) }); }
-  if (visible('Colony Sim')) { const d = T['Colony Sim']; stops.push({ icon: 'trophy', title: w('蓝海'), tag: 'Colony Sim',
-    text: tx(`成功率 <b>${pct(adj(d), 1)}</b>，是基准的 ${(adj(d) / B.hit).toFixed(1)} 倍；供给只有 ${fmt(d.n)} 款`, `Success rate <b>${pct(adj(d), 1)}</b>, ${(adj(d) / B.hit).toFixed(1)}× the baseline, from just ${fmt(d.n)} games`) }); }
+  { const oc = oceans(), of = c => visibleTags().filter(t => oc[t] && oc[t].cls === c);
+    const red = of('red').sort((a, b) => T[b].n - T[a].n)[0], blue = of('blue').sort((a, b) => oc[b].lo - oc[a].lo)[0];
+    if (red) { const d = T[red], o = oc[red]; stops.push({ icon: 'wave', title: w('红海风险'), tag: red, chapter: 'market',
+      text: tx(`${fmt(d.n)} 款、中位好评率 <b>${pct(d.score)}</b>，约每百款只有 <b>${Math.round(o.rate * 100)}</b> 款成功，低于同类：好游戏也会被淹没`, `${fmt(d.n)} games, median rating <b>${pct(d.score)}</b>, yet only about <b>${Math.round(o.rate * 100)}</b> in 100 succeed, below their peers: good games get buried`) }); }
+    if (blue) { const o = oc[blue]; stops.push({ icon: 'trophy', title: w('蓝海候选'), tag: blue,
+      text: tx(`约每百款 <b>${Math.round(o.rate * 100)}</b> 款成功（95% 区间 ${pct(o.lo, 1)}–${pct(o.hi, 1)}），近三年新作只占 ${pct(o.supply, 2)}`, `About <b>${Math.round(o.rate * 100)}</b> in 100 succeed (95% range ${pct(o.lo, 1)}–${pct(o.hi, 1)}), from just ${pct(o.supply, 2)} of recent releases`) }); } }
   if (visible('Cozy')) { const d = T['Cozy']; stops.push({ icon: 'rocket', title: w('新星'), tag: 'Cozy', chapter: 'market',
     text: `<b>${pct(d.recent)}</b> ${w('是 2022 年后发行的，中位好评率')} <b>${pct(d.score)}</b>` }); }
   const giant = visibleTags().filter(t => T[t].n >= 1000 && !['other', 'theme'].includes(famOf(t).key)).sort((a, b) => T[b].conc.top1 - T[a].conc.top1)[0];
@@ -1884,8 +1932,8 @@ const FINDINGS = (() => {
   const giantEx = giants.filter(t => T[t].n >= 1000)[0] || giants[0];
   const gem = genre.filter(t => noTheme(t) && T[t].score >= .87 && adj(T[t]) < B.hit).sort((a, b) => T[b].n - T[a].n);
   const pricey = genre.slice().sort((a, b) => T[b].pstat.p50 - T[a].pstat.p50).slice(0, 20);
-  const blue = genre.filter(t => noTheme(t) && adj(T[t]) >= 1.8 * B.hit && T[t].n <= medN && T[t].score >= .77).sort((a, b) => adj(T[b]) - adj(T[a]));
-  const red = genre.filter(t => adj(T[t]) < .8 * B.hit && T[t].n >= 3000).sort((a, b) => T[b].n - T[a].n);
+  const oc = oceans(), blue = genre.filter(t => oc[t] && oc[t].cls === 'blue').sort((a, b) => oc[b].lo - oc[a].lo);
+  const red = genre.filter(t => oc[t] && oc[t].cls === 'red').sort((a, b) => T[b].n - T[a].n);
   const pr = B.price_b.rate, lg = B.lang_b.rate, g0 = giantEx && T[giantEx].top.find(x => x.year >= 2018 && x.year <= 2024), m0 = gem[0], names = (l, k) => l.slice(0, k).map(esc).join(w('、'));
   const out = [
     { big: `${(n24 / n20).toFixed(1)}×`, title: w('供给翻倍，被看见的没变'), view: 0, spot: null, short: tx(`发行量 2020→2024 涨到 ${(n24 / n20).toFixed(1)} 倍，成功作品几乎不变（${fmt(h20)} → ${fmt(h24)}）`, `Releases grew ${(n24 / n20).toFixed(1)}× from 2020 to 2024; hits barely moved (${fmt(h20)} → ${fmt(h24)})`),
@@ -1896,8 +1944,8 @@ const FINDINGS = (() => {
       body: tx(`这些类别中位好评率 ≥ 87%，和同年发行的游戏比，成功率仍低于基准 ${pct(B.hit, 1)}。${m0 ? `${esc(m0)}：好评 ${pct(T[m0].score)}，成功率 ${pct(adj(T[m0]), 1)}。` : ''}口碑很高，位置却很低。`, `These tags have a median rating of 87% or more, yet a success rate, judged against same-year games, below the ${pct(B.hit, 1)} baseline.${m0 ? ` ${esc(m0)}: ${pct(T[m0].score)} positive, ${pct(adj(T[m0]), 1)} success.` : ''} Highly rated, yet low on the map.`) },
     { big: `${(pr[4] / pr[1]).toFixed(0)}×`, title: w('投入看得见'), view: .3, spot: new Set(pricey), short: tx(`原价 $20–30 的成功率是 $5 以下的 ${(pr[4] / pr[1]).toFixed(0)} 倍`, `Games listed at $20–30 succeed ${(pr[4] / pr[1]).toFixed(0)}× as often as those under $5`),
       body: tx(`原价 $20–30 的游戏成功率 ${pct(pr[4])}，不到 $5 的只有 ${pct(pr[1])}；支持 10 种以上语言的 ${pct(lg[3])}，只有 1 种的 ${pct(lg[0])}。这更多反映团队投入，不是涨价就能成功。`, `Games listed at $20–30 succeed ${pct(pr[4])} of the time, those under $5 only ${pct(pr[1])}. With 10+ languages it's ${pct(lg[3])}, with one language ${pct(lg[0])}. This mostly reflects how much a team invested; raising the price alone won't do it.`) },
-    { big: tx(`${blue.length} 个`, `${blue.length}`), title: w('机会在这里'), view: -.3, spot: new Set(blue), short: tx(`${blue.length} 个类别成功率高、竞争者少，比如 ${names(blue, 3)}`, `${blue.length} tags combine high success with few competitors, like ${names(blue, 3)}`),
-      body: tx(`高亮的类别和同年发行的游戏比，成功率仍至少是基准的 1.8 倍，供给低于中位数，好评率也不差：${names(blue, 6)}。`, `Judged against games from the same years, the highlighted tags still succeed at least 1.8× the baseline, with below-median supply and solid ratings: ${names(blue, 6)}.`) },
+    { big: tx(`${blue.length} 个`, `${blue.length}`), title: w('机会在这里'), view: -.3, spot: new Set(blue), short: tx(`${blue.length} 个蓝海候选：新作少、有人看、成功率明显高于同类，比如 ${names(blue, 3)}`, `${blue.length} blue-ocean candidates: few new games, noticed, and clearly more successful than their peers, like ${names(blue, 3)}`),
+      body: tx(`高亮的是“蓝海候选”：和同一阵营的标签比，近三年新作份额在下四分位，典型作品的关注度不低于中位，成功率 95% 区间的下限仍高于同类上四分位：${names(blue, 6)}。这是历史关联，用 2018–20 定规则、2021–23 回测时 4 个候选全部仍高于同类中位。`, `Highlighted: blue-ocean candidates. Compared with tags in the same faction, their share of recent releases is in the bottom quarter, their typical game gets at least median attention, and even the low end of their 95% success range beats the faction's upper quartile: ${names(blue, 6)}. This is history, not a promise; set on 2018–20 and checked on 2021–23, all 4 candidates stayed above their faction median.`) },
   ];
   out.red = red; out.blue = blue;
   return out;
@@ -1907,14 +1955,14 @@ function drawSummary() {
   document.getElementById('sum').innerHTML = tx(`<div class="sumin"><div class="kicker">结论</div><h2>通过这份数据，能得到什么</h2>
     <div class="sumgrid">${FINDINGS.map(f => `<div class="sumc"><div class="sb">${f.big}</div><b>${f.title}</b><span>${f.short}</span></div>`).join('')}</div>
     <h3>如果要做一款新游戏</h3>
-    <ol class="sumact"><li><b>先选赛道，再做游戏。</b>避开 ${list(r.slice(0, 3))} 这类红海，优先看 ${list(b.slice(0, 3))}。</li>
+    <ol class="sumact"><li><b>先选赛道，再做游戏。</b>留意 ${list(r.slice(0, 3))} 这类红海风险，先看 ${list(b.slice(0, 3))} 这类蓝海候选。</li>
     <li><b>别指望低价带来曝光。</b>$5 以下的成功率只有 ${pct(pr[1])}，$10–20 是 ${pct(pr[3])}。</li>
     <li><b>把本地化当基本功。</b>支持中文的游戏成功率 ${pct(zh.hit_with)}，不支持的 ${pct(zh.hit_without)}。</li>
     <li><b>好口碑只是入场券。</b>质量之外，还要想清楚玩家怎么发现你。</li></ol>
     <p class="sumnote">以上都是相关关系，不代表因果。成功 = 至少 500 条 Steam 评价；比较类别时，每款游戏只和同年发行的游戏比；范围是 2018–2024 年发行、有标签的游戏。向上滑动可以回到星图。</p></div>`, `<div class="sumin"><div class="kicker">Conclusions</div><h2>What this data tells us</h2>
     <div class="sumgrid">${FINDINGS.map(f => `<div class="sumc"><div class="sb">${f.big}</div><b>${f.title}</b><span>${f.short}</span></div>`).join('')}</div>
     <h3>If you are making a new game</h3>
-    <ol class="sumact"><li><b>Pick the lane before the game.</b> Avoid red oceans like ${list(r.slice(0, 3))}; look first at ${list(b.slice(0, 3))}.</li>
+    <ol class="sumact"><li><b>Pick the lane before the game.</b> Be wary of red-ocean risks like ${list(r.slice(0, 3))}; look first at blue-ocean candidates like ${list(b.slice(0, 3))}.</li>
     <li><b>Don't count on a low price for visibility.</b> Under $5 the success rate is only ${pct(pr[1])}; at $10–20 it's ${pct(pr[3])}.</li>
     <li><b>Treat localization as a basic.</b> Games with Chinese support succeed ${pct(zh.hit_with)} of the time; without it, ${pct(zh.hit_without)}.</li>
     <li><b>Good reviews are only the ticket in.</b> Beyond quality, work out how players will find you.</li></ol>
@@ -1948,7 +1996,7 @@ const M = (() => {
   const { REST_END, ROT_END, FIND_T } = PH, FIND_STEP = PACE.dist.finding, SUM_T = FIND_T + FIND_STEP * FINDINGS.length, FADE = FIND_STEP * .15, cards = new Map();
   const SLOTS = 24, loaded = new Uint8Array(NSMALL + ASSET.extra.length), imgs = new Array(NSMALL + ASSET.extra.length), slotOf = new Map(), slotOwner = new Array(SLOTS).fill(-1);
   let slotNext = 0;
-  const layerOf = i => i < NSMALL ? i : NSMALL + (slotOf.get(i) ?? 0), coverOf = (b, i) => b.d.covers.find(x => x.i === i) || b.d.games.find(x => x.i === i);
+  const layerOf = i => i < NSMALL ? i : NSMALL + (slotOf.get(i) ?? 0), coverOf = (b, i) => b.d.covers.find(x => x.i === i) || b.d.games.find(x => x.i === i) || (state.game && state.game.i === i && state.game.t === b.name ? gameByCover(i) : null);
   let tex = null, prog = null, buf = null, data = null, ready = false;
   const beats = [...document.querySelectorAll('.beat3')].map(n => ({ n, w: n.dataset.w.split(',').map(Number) }));
 
@@ -2490,8 +2538,8 @@ document.getElementById('reset').addEventListener('click', () => { clearGame(tru
 document.getElementById('showOutcome').addEventListener('change', e => { state.showOutcome = e.target.checked; if (!state.showOutcome && state.locked && T[state.locked].outcome) state.locked = null; drawFactionChips(); drawTour(); fillList(); drawTable(); drawMapCtl(); drawMain(); drawLinked(); });
 
 document.getElementById('uN').textContent = fmt(DATA.meta.universe);
-document.getElementById('noteAxis').innerHTML = tx('<b>三维星图</b>：横轴 = 游戏数（对数），纵轴 = 成功率（默认和同年发行的游戏比，可切换为直接统计），纵深 = 2022 年后发行的占比；球的大小 = 游戏数，球的外圈颜色 = 阵营。球面从该标签的代表作开始，按评价数加权随机轮换。代表作、封面拼图、评价最多的游戏和开发商榜都取自<b>全部年份</b>，其余指标只算 2018–2024。',
-  '<b>3D map</b>: horizontal = number of games (log), vertical = success rate (judged against same-year games by default; the simple count is one click away), depth = share released since 2022; ball size = number of games, rim colour = faction. Each ball starts on its best-known game and rotates through the others, weighted by review count. Cover art, the mosaic, and the most-reviewed games and developers come from <b>all years</b>; every other figure covers 2018–2024 only.');
+document.getElementById('noteAxis').innerHTML = tx('<b>三维星图</b>：横轴 = 游戏数（对数），纵轴 = 成功率（默认和同年发行的游戏比，可切换为直接统计），纵深 = 2022 年后发行的占比；球的大小 = 游戏数，球的外圈颜色 = 阵营。球面从该标签的代表作开始，按评价数加权随机轮换。代表作和封面拼图取自<b>全部年份</b>（一个标签最有名的游戏常常比较老）；评价最多的游戏、开发商榜和其余指标都只算 2018–2024。',
+  '<b>3D map</b>: horizontal = number of games (log), vertical = success rate (judged against same-year games by default; the simple count is one click away), depth = share released since 2022; ball size = number of games, rim colour = faction. Each ball starts on its best-known game and rotates through the others, weighted by review count. Cover art and the mosaic come from <b>all years</b> (a tag\'s best-known games are often older); the most-reviewed games, the developers and every other figure cover 2018–2024 only.');
 document.getElementById('noteAdj').innerHTML = tx(`<b>为什么要“和同年游戏比”</b>：一款 2018 年的游戏已经积累了 7 年评价，2024 年的只有 1 年多（有标签游戏的逐年成功率从 ${pct(B.yrate[0], 1)} 降到 ${pct(B.yrate[6], 1)}），所以新作多的标签直接统计出来天然偏低。算法：先算"如果它每个发行年份的表现都等于当年有标签游戏的平均，成功率会是多少"（预期），再用 实际 ÷ 预期 × 基准 ${pct(B.hit, 1)}。这样只扣掉发行年份这一个因素，纵深轴（新作占比）因此不再和高度纠缠。`,
   `<b>Why “vs. same-year games”</b>: a 2018 game has had seven years to collect reviews, a 2024 game barely one (the yearly success rate of tagged games falls from ${pct(B.yrate[0], 1)} to ${pct(B.yrate[6], 1)}), so tags full of recent games look worse than they are. The calculation asks what a tag's success rate would be if each of its release years did exactly as well as the average tagged game of that year (expected), then reports actual ÷ expected × the ${pct(B.hit, 1)} baseline. It removes release year and nothing else, so depth (share of recent games) no longer leaks into height.`);
 document.getElementById('noteCI').innerHTML = tx(`<b>小样本</b>：功能有/无对比和标签组合的门槛是 30 款。成功率 25%、30 款游戏时，95% 置信区间约为 ±15 个百分点，所以表格里给出区间，不足 ${THIN_N} 款的行变淡。`,
@@ -2537,17 +2585,15 @@ addEventListener('keydown', e => {
   if (!document.getElementById('ui3').classList.contains('live')) return;
   if (e.key === '+' || e.key === '=') M.zoomAt(1.3); else if (e.key === '-' || e.key === '_') M.zoomAt(1 / 1.3);
 });
-document.getElementById('skip').textContent = tx('跳过开场，直接看星图 →', 'Skip the intro, go to the map →');
-document.getElementById('skip').addEventListener('click', () => toBottom(false));
+document.getElementById('skip').textContent = tx('跳过开场 →', 'Skip the intro →');
+document.getElementById('skip').addEventListener('click', () => scrollTo(0, document.getElementById('select').offsetTop));   // lands on the role cards (issue 015)
 if (location.hash === '#map') toBottom(false);
 else if (location.hash === '#select') scrollTo(0, document.getElementById('select').offsetTop);
 else { try { const y = sessionStorage.getItem('stm-y'); if (y) { sessionStorage.removeItem('stm-y'); scrollTo(0, +y); } } catch (e) {} }
 addEventListener('scroll', hideTip, { passive: true });
 let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawMain(); drawLinked(); }, 120); });
 </script>
-<script type="application/json" id="gamesRaw">__GAMES__</script>
 <script>
-__FILE:db.js__
 __FILE:studio.js__
 </script>
 </body>

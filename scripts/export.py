@@ -91,14 +91,16 @@ def top_games(g, k=10):
              'play': None if pd.isna(r.play_h) else round(float(r.play_h), 1)} for _, r in t.iterrows()]
 
 def summary(u, allyears, totals):
-    """u: 2018-2024 tagged games in this segment; allyears: segment across every year (for trend & top lists)."""
+    """u: 2018-2024 tagged games in this segment; allyears: the segment across every year.
+    Ranked lists (top games, developers) use u, like every other number in the panel (issue 006);
+    cover art and the cover mosaic use allyears, because the best-known games of a tag are often older."""
     s = u[u.reviews >= 20].pos_ratio
     paid = u[u.list_price > 0].list_price
     rev_sorted = u.reviews.sort_values(ascending=False)
     tot_rev = max(1, rev_sorted.sum())
     k10 = max(1, int(np.ceil(len(u) * 0.1)))
     deb = u.dropna(subset=['debut'])
-    devs = allyears.explode('devs').dropna(subset=['devs']).groupby('devs').agg(
+    devs = u.explode('devs').dropna(subset=['devs']).groupby('devs').agg(
         games=('appid', 'size'), reviews=('reviews', 'sum'), hits=('hit', 'sum')).nlargest(6, 'reviews')
     dev_counts = u.dev0.value_counts()
     feats = {}
@@ -141,7 +143,7 @@ def summary(u, allyears, totals):
                  'hit_debut': r4(deb[deb.debut == True].hit.mean()) if (deb.debut == True).sum() >= 30 else None,
                  'hit_vet': r4(deb[deb.debut == False].hit.mean()) if (deb.debut == False).sum() >= 30 else None},
         'devs': [{'name': n, 'games': int(r.games), 'reviews': int(r.reviews), 'hits': int(r.hits)} for n, r in devs.iterrows()],
-        'top': top_games(allyears),
+        'top': top_games(u),
         'covers': covers(allyears),
         'games': games(allyears),
         'gstat': {'total': int(len(allyears)), 'reviews': int(allyears.reviews.sum())},

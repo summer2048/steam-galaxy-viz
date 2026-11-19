@@ -200,8 +200,25 @@ body.studio-open #langBtn{z-index:70}
 
 .st-none{padding:12px 14px;font-size:13px;color:var(--muted)}
 .st-sl{font:600 12.5px/1.3 inherit;color:var(--ink2);margin:10px 0 2px}
-.st-entry{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px}
-.st-ent{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:left;padding:14px 18px;min-width:250px;border-radius:14px;background:rgba(26,26,25,.82);backdrop-filter:blur(8px);border:1px solid var(--card-border);transition:border-color .15s,transform .15s}
+/* both groups of role cards: two equal columns, equal height, titles on one line; one column when narrow (issue 025) */
+.st-entry{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:min(640px,100%);margin:22px auto 0;align-items:stretch}
+@media (max-width:560px){.st-entry{grid-template-columns:1fr}}
+.st-ent{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start;gap:6px;text-align:left;padding:14px 18px;min-width:0;border-radius:14px;background:rgba(26,26,25,.82);backdrop-filter:blur(8px);border:1px solid var(--card-border);transition:border-color .15s,transform .15s}
+.st-ent:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.st-entry-sel{margin:0 auto 26px}
+/* first act of the intro (issue 015) */
+.st-first{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:3;width:min(680px,calc(100% - 32px));text-align:center;transition:opacity .25s,visibility .25s}
+.st-first.gone{opacity:0;visibility:hidden;pointer-events:none}
+.st-firston #cue{visibility:hidden}
+.st-first h2{margin:0;font:700 22px/1.25 var(--display);font-stretch:semi-condensed;color:var(--ink)}
+.st-first p{margin:6px 0 0;font-size:13.5px;color:var(--ink2)}
+.st-first .st-entry{margin-top:14px}
+.st-look{all:unset;cursor:pointer;margin-top:12px;display:inline-block;font-size:13px;color:var(--ink2);padding:6px 10px;border-radius:999px}
+.st-look:hover,.st-look:focus-visible{color:var(--ink);background:rgba(60,60,58,.6)}
+/* phones: titles only, side by side, so the first act's headline stays clear; the role area below keeps the full cards */
+@media (max-width:560px){.st-first{bottom:58px}.st-first h2{font-size:17px}.st-first p,.st-first .st-ent small{display:none}
+  .st-first .st-entry{grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.st-first .st-ent{padding:11px 10px;align-items:center;text-align:center}.st-first .st-ent b{font-size:14.5px}
+  .st-first .st-look{margin-top:6px}.st-ent small{font-size:11.5px}}
 .st-ent:hover,.st-ent:focus-visible{border-color:var(--s1);transform:translateY(-1px)}
 .st-ent b{font:700 16px/1.2 var(--display);font-stretch:semi-condensed;color:var(--ink)}
 .st-ent small{font-size:12px;color:var(--ink2)}
@@ -216,6 +233,25 @@ body.studio-open #langBtn{z-index:70}
   .st-hero h1{font-size:28px}.st-kpi.big .v{font-size:32px}
   .st-card{padding:14px}.st-wrap{padding:12px 12px 48px}
   .st-whyp .st-game{max-width:260px}
+}
+/* phones (issue 028): two-row top bar, companion table as cards, seed names on two lines */
+.st-top .sm{display:none}
+@media (max-width:560px){
+  .st-top{padding:8px 12px;gap:6px 8px;flex-wrap:wrap}
+  .st-top .lg{display:none}.st-top .sm{display:inline}
+  #stBack{padding:7px 11px}
+  #stMode{flex-wrap:nowrap;border-radius:999px}
+  .st-top > div:last-child{width:100%;display:flex;align-items:center;gap:6px;min-width:0}
+  #stSM{flex-wrap:nowrap;overflow-x:auto;border-radius:999px;scrollbar-width:none;min-width:0;flex:1}
+  #stSM::-webkit-scrollbar{display:none}
+  .st-comp{grid-template-columns:26px minmax(0,1fr) 52px;gap:2px 10px}
+  .st-comp .h:not(.c-bar):not(.num),.st-comp .c-rel,.st-comp .c5{display:none}
+  .st-comp .h.c-bar,.st-comp .c-bar{grid-column:2 / -1}
+  .st-comp .h.num:not(.c-rel){grid-column:3}   /* the games header sits over the games column, not over the + buttons */
+  .st-comp .h.c-bar{order:0}
+  .st-comp .c-bar{border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:8px}
+  .st-comp .c.nm,.st-comp .c.num{border-bottom:0}
+  .st-seed b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 }
 
 /* covers shipped as files: the name sits underneath and shows if the image is missing */
@@ -244,7 +280,9 @@ body.studio-open #langBtn{z-index:70}
 .st-dsvg .st-dna{fill:var(--muted);font-size:12px;font-style:italic}
 /* map panel: selection actions and the selected game against its tag */
 .st-hacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.st-hacts .st-btn{font-size:12.5px;padding:7px 12px}
+.st-hacts .st-btn{font-size:12.5px;padding:7px 12px;white-space:normal;line-height:1.3;text-align:left;max-width:100%}
+/* phones: the cover takes most of the banner, so the panel's two task buttons go below it, one per row (issue 025) */
+@media (max-width:560px){.banner .hinfo{min-width:0}.st-hacts{gap:6px;margin-top:8px}.st-hacts .st-btn{padding:6px 10px;text-align:center}}   /* phones use short labels (issue 030), so the actions wrap in a row */
 .gpos{margin:0 2px 14px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--card-border)}
 .st-gphd{font-size:16px;line-height:1.35;margin-bottom:4px}
 .st-gpnote{font-size:12px;color:var(--muted);margin:4px 0 6px;line-height:1.45}
@@ -254,3 +292,80 @@ body.studio-open #langBtn{z-index:70}
 .st-gph em{font-style:normal;font-weight:700}
 .st-gph small{margin-left:auto;color:var(--muted);font-size:11px}
 .gpos .st-dsvg text{font-size:10.5px}
+
+/* lane: notice for repaired links; plain-language reading of the trend chart */
+.st-notice{margin:0 0 12px;padding:10px 14px;border-radius:10px;background:rgba(201,133,0,.12);border:1px solid rgba(201,133,0,.45);font-size:13.5px;color:var(--ink)}
+.st-reads{list-style:none;margin:6px 0 8px;padding:0;display:grid;gap:6px;font-size:13.5px;line-height:1.5;color:var(--ink2)}
+.st-reads b{color:var(--ink)}
+/* plan: which lane is being compared */
+.st-planhd{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;margin:0 0 14px}
+.st-planhd h2{margin:0;font:600 20px/1.3 var(--display);font-stretch:semi-condensed;color:var(--ink2)}
+.st-planhd h2 b{color:var(--ink)}
+.st-planhd .st-presets{margin:0}
+
+/* the shared ocean class on single-tag lanes: why, in one line under the badges (issue 023) */
+.st-ocwhy{margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink2);max-width:640px}
+
+/* map panel, tag selected (issue 022): observation + two year-aligned charts */
+.tfirst{margin:4px 0 14px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid var(--card-border)}
+.tf-obs{margin:0 0 8px;font-size:13.5px;line-height:1.55;color:var(--ink2)}
+.tf-obs b{color:var(--ink)}
+.tfirst svg{display:block;width:100%;height:auto;overflow:visible}
+.tfirst text{font-size:11px;fill:var(--muted)}
+.tfirst .tf-h{fill:var(--ink2);font-weight:600}
+.tfirst .tf-v{fill:var(--ink);font-weight:700;font-size:12px}
+.tfirst .tf-s{fill:var(--ink2)}
+.tfirst .tf-n{fill:var(--muted);font-size:11px}
+.tf-ax{stroke:var(--axis)}
+.tf-ln{fill:none;stroke:var(--sel);stroke-width:2.2;stroke-linejoin:round}
+.tf-mk{fill:none;stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:4 4}
+.tf-pt{fill:var(--sel);stroke:var(--surface);stroke-width:1}
+.tf-key{margin:6px 0 0;font-size:11.5px;color:var(--muted)}
+
+/* watchlist (issue 024) */
+.st-watch{margin-top:8px;line-height:2.1}
+.st-watch button.on{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.st-wchip{display:inline-flex;gap:0;margin-right:4px}
+.st-wchip button:first-child{border-top-right-radius:0;border-bottom-right-radius:0}
+.st-wchip .st-wadd{border-top-left-radius:0;border-bottom-left-radius:0;border-left:0;padding-left:7px;padding-right:8px}
+.st-wbtn[aria-pressed="true"]{border-color:var(--sel);color:var(--ink)}
+.st-bench{margin:8px 0 0;padding:10px 12px;border-radius:10px;border:1px solid var(--card-border);background:rgba(255,255,255,.03);font-size:13px;line-height:1.6;color:var(--ink2)}
+.st-bench b{color:var(--ink)}
+.st-btags{display:block;margin-top:4px;line-height:2}
+.st-btags em{font-style:normal;color:var(--ink);padding:1px 8px;border-radius:999px;border:1px solid var(--ink2);margin-right:2px}
+.st-btags button{all:unset;cursor:pointer;color:var(--ink2);padding:1px 8px;border-radius:999px;border:1px dashed var(--card-border);margin-right:2px}
+.st-btags button:hover,.st-btags button:focus-visible{color:var(--ink);border-color:var(--ink2);outline:2px solid var(--s1);outline-offset:1px}
+
+/* first screen covers (issue 026) */
+.st-covers{--cov-w:118px;position:absolute;left:50%;top:70px;transform:translateX(-50%);z-index:3;width:min(900px,calc(100% - 32px));transition:opacity .25s,visibility .25s}
+.st-covers.gone{opacity:0;visibility:hidden;pointer-events:none}
+.st-ccap{position:absolute;left:0;right:0;margin:0;text-align:center;font-size:12.5px;color:var(--ink2)}
+.st-clines{position:absolute;left:0;top:0;overflow:visible}
+.st-clines line{stroke:var(--ink2);stroke-opacity:.45;stroke-width:1.2}
+.st-cov{all:unset;cursor:pointer;position:absolute;top:0;width:var(--cov-w);transform:translateX(-50%);text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.st-cov img{width:100%;aspect-ratio:460/215;object-fit:cover;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12)}
+.st-cov b{margin-top:4px;font-size:12.5px;line-height:1.2;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-cov small{font-size:11px;color:var(--muted)}
+.st-cov:hover img,.st-cov:focus-visible img{border-color:var(--ink2)}
+.st-cov:focus-visible{outline:2px solid var(--s1);outline-offset:3px;border-radius:8px}
+.st-ctag{position:absolute;transform:translateX(-50%);padding:3px 10px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--ink);background:var(--page);border:1px solid var(--ink2)}
+@media (max-width:560px){.st-covers{top:58px}.st-cov small{font-size:10.5px}.st-ccap{font-size:11px;line-height:1.35}.st-ctag{font-size:11px;padding:2px 7px}}
+
+/* review spread and store-page practice (issue 007) */
+.st-spread{margin:2px 0 12px;font-size:14px;line-height:1.6;color:var(--ink2)}
+.st-spread b{color:var(--ink)}
+.st-store{display:grid;grid-template-columns:minmax(120px,1.3fr) 64px 72px minmax(140px,2.4fr);column-gap:12px;font-size:13px}
+.st-store>div{display:contents}
+.st-store>div>span{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px}
+.st-store .h span{font-size:11.5px;color:var(--muted);text-transform:none}
+.st-store .g span{grid-column:1 / -1;padding-top:12px;font-size:12px;font-weight:700;color:var(--ink2);letter-spacing:.02em;border-bottom:0}
+.st-store .num{justify-content:flex-end;font-variant-numeric:tabular-nums}
+.st-store .few span{color:var(--muted)}
+.st-store .all span{border-top:1px solid var(--card-border)}
+.st-store small{font-size:11px;color:var(--muted);white-space:nowrap}
+.st-store .r small{flex:0 0 84px;text-align:right}
+.st-sbar{position:relative;flex:1;height:14px;min-width:80px}
+.st-sbar .ci{position:absolute;top:5px;height:4px;border-radius:2px;background:var(--sel);opacity:.35}
+.st-sbar .pt{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--sel)}
+.st-sbar .ln{position:absolute;top:-1px;bottom:-1px;width:0;border-left:1.5px dashed var(--ink2)}
+@media (max-width:560px){.st-store{grid-template-columns:1fr 48px 56px}.st-store .h span:nth-child(4),.st-store .r span:nth-child(4){grid-column:1 / -1;padding-top:0}.st-store .h span:nth-child(4){display:none}}

@@ -54,7 +54,13 @@ feat = bits(*FEATS)
 # ---- outcome flags, computed here once so the page never re-derives thresholds
 ADULT = {'Hentai', 'NSFW', 'Sexual Content', 'Nudity'}
 safe = df.img.notna() & (df.age.fillna(0) < 18) & df.tags.map(lambda t: not (set(t) & ADULT))
-flags = bits(df.reviews >= REVIEW_T, df.owners_hi >= OWN_T, df.owners_hi * df.list_price >= GROSS_T, safe)
+# Early Access is Steam's genre at snapshot time: a game that has since left Early Access no longer carries it (issue 007)
+ea = df.genres.map(lambda g: 'Early Access' in g)
+flags = bits(df.reviews >= REVIEW_T, df.owners_hi >= OWN_T, df.owners_hi * df.list_price >= GROSS_T, safe, ea)
+
+# ---- store page and publishing (issue 007): 0 = no publisher listed, 1 = self-published (a developer is also a publisher), 2 = external
+pub = np.select([df.pubs.map(len) == 0, [bool(set(d) & set(p)) for d, p in zip(df.devs, df.pubs)]], [0, 1], 2).astype('u1')
+shots = df.n_screens.fillna(0).clip(upper=255).astype('u1')   # screenshots on the store page; the source has no usable video field
 
 # ---- cover asset index from every cover list already embedded in the page. Those lists carry no appid, so the key is
 # (name, review count): titles alone collide (two games are called "Portal").
@@ -79,6 +85,8 @@ cols = {
     'play':    ('u32', u32(df.med_play.where(df.med_play > 0), 0)),  # median minutes, 0 = no data
     'feat':    ('u8',  feat),
     'flags':   ('u8',  flags),
+    'pub':     ('u8',  pub),
+    'shots':   ('u8',  shots),
     'cover':   ('i16', cov),
 }
 b64 = lambda a: base64.b64encode(np.ascontiguousarray(a).tobytes()).decode()
@@ -90,7 +98,7 @@ res = {
     'names': '\n'.join(names),
     'langs': LANGS,
     'feats': dash['labels']['feats'],
-    'flags': ['hit', 'hit_o', 'hit_g', 'safe'],
+    'flags': ['hit', 'hit_o', 'hit_g', 'safe', 'ea'],
     'outcome': sorted(t for t, d in dash['tags'].items() if d['outcome']),
     'meta': {'own_t': OWN_T, 'gross_t': GROSS_T, 'scope': [2018, 2024], 'snapshot': dash['meta']['snapshot']},
 }

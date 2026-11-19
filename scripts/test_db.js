@@ -4,6 +4,11 @@ const fs = require('fs');
 const GameDB = require('./db.js');
 // the page scripts must at least parse (they need a browser to run)
 for (const f of ['db.js', 'studio.js']) new Function(fs.readFileSync(require('path').join(__dirname, f), 'utf8'));
+// the template's inline scripts must parse too (a stray apostrophe in a quoted string once blanked the whole page)
+{ const tpl = fs.readFileSync(require('path').join(__dirname, 'template.html'), 'utf8');
+  [...tpl.matchAll(/<script>([\s\S]*?)<\/script>/g)].forEach((m, i) => {
+    const code = m[1].replace(/__(DATA|ASSETS|FAMILIES|I18N)__/g, '{}').replace(/__FILE:[^_]+__/g, '');
+    try { new Function(code); } catch (e) { throw new Error(`template.html inline script ${i}: ${e.message}`); } }); }
 const [gamesPath = 'data/games.json', dashPath = 'data/dash_offline.json'] = process.argv.slice(2);
 
 let t0 = Date.now();
@@ -88,4 +93,23 @@ if (fails.length) {
   process.exit(1);
 }
 if (skipped.size) console.log(`not in this export, not compared: ${[...skipped].join(", ")}`);
+// ---- shared ocean rule (issue 023): counter-examples on a synthetic family of 12 peers ----
+{
+  const peer = i => ({ n: 400, hits: 40, rate: .08 + i * .01, lo: .05 + i * .01, hi: .11 + i * .01, supply: .01 + i * .002, attention: .4 + i * .02 });
+  const stats = {}; for (let i = 0; i < 12; i++) stats['p' + i] = peer(i);
+  stats.quietGap = { n: 300, hits: 60, rate: .2, lo: .16, hi: .25, supply: .005, attention: .2 };          // few new games but nobody looks
+  stats.busyStrong = { n: 9000, hits: 1800, rate: .2, lo: .19, hi: .21, supply: .06, attention: .7 };     // crowded and strong
+  stats.slightlyAbove = { n: 500, hits: 55, rate: .11, lo: .085, hi: .14, supply: .005, attention: .8 }; // a bit above the market, most still fail
+  stats.tiny = { n: 25, hits: 12, rate: .48, lo: .28, hi: .69, supply: .002, attention: .9 };             // small sample
+  stats.clearBlue = { n: 600, hits: 180, rate: .3, lo: .26, hi: .34, supply: .005, attention: .8 };
+  stats.clearRed = { n: 8000, hits: 320, rate: .04, lo: .035, hi: .045, supply: .08, attention: .2 };
+  const oc = GameDB.classifyOceans(stats, () => 'f');
+  const want = { quietGap: 'quiet', busyStrong: 'busy', slightlyAbove: 'mixed', tiny: 'thin', clearBlue: 'blue', clearRed: 'red' };
+  for (const [t, c] of Object.entries(want)) if (oc[t].cls !== c) throw new Error(`ocean rule: ${t} should be ${c}, got ${oc[t].cls}`);
+  const few = GameDB.classifyOceans({ a: peer(1), b: peer(2), c: stats.clearBlue }, () => 'f');
+  if (few.c.cls !== 'thin') throw new Error('ocean rule: a family with too few peers must be "thin", got ' + few.c.cls);
+  // real data: the rule runs for all three success definitions and judges most map tags
+  const fam = t => dash.tags[t] && !dash.tags[t].outcome ? 'all' : null;
+  for (const d of ['hit', 'hit_o', 'hit_g']) { const o = db.oceans(d, fam); if (Object.keys(o).length < 200) throw new Error('ocean rule: too few tags judged for ' + d); }
+}
 console.log(`\nOK: ${names.length} tags + market baseline + lane spot checks match`);

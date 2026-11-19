@@ -13,7 +13,7 @@ const GameDB = (() => {
     lang: [-1, 1, 4, 9, 1000],
   };
   const DEFS = { hit: 0, hit_o: 1, hit_g: 2 };   // success definition -> bit in flags
-  const SAFE = 3;
+  const SAFE = 3, EA = 4;
 
   function bytes(s) {
     if (typeof atob !== 'function') { const b = Buffer.from(s, 'base64'), u = new Uint8Array(b.length); u.set(b); return u; }
@@ -32,6 +32,36 @@ const GameDB = (() => {
     const n = a.length; if (!n) return null;
     const s = Float64Array.from(a).sort(), p = (n - 1) * q, i = Math.floor(p);
     return i + 1 < n ? s[i] + (s[i + 1] - s[i]) * (p - i) : s[i];
+  }
+  /** Blue / red ocean among comparable tags (issue 023). One rule for the map badges, the tour, the summary and Studio.
+      stats: tag -> { n, hits, rate, lo, hi, supply, attention } from tagStats(); fam: tag -> family key, or null to leave a
+      tag unjudged (generic and outcome tags). Every cut point is a quantile of the tag's own family, so a tag is only ever
+      compared with its peers:
+        blue  few new games (supply <= family q), its typical game is noticed (attention >= family median) and success is
+              clearly high (95% low end above the family's upper quartile)
+        red   many new games (supply >= family 1-q), typical game overlooked, success clearly low (95% high end below the median)
+        busy  many new games but success clearly above the family median: crowded and strong
+        quiet few new games and the typical game is overlooked: little attention rather than an opening
+        mixed anything else; thin: under minN games, or a family with fewer than minPeers comparable tags */
+  function classifyOceans(stats, fam, opts = {}) {
+    const q = opts.q ?? .25, minN = opts.minN ?? 40, minPeers = opts.minPeers ?? 8, groups = {}, refs = {}, out = {};
+    for (const t in stats) { const f = fam(t), s = stats[t]; if (f && s.n >= minN) (groups[f] || (groups[f] = [])).push(s); }
+    for (const f in groups) {
+      const g = groups[f]; if (g.length < minPeers) continue;
+      const sup = g.map(s => s.supply), rt = g.map(s => s.rate);
+      refs[f] = { peers: g.length, supLo: quantile(sup, q), supHi: quantile(sup, 1 - q), attMed: median(g.map(s => s.attention)), rateMed: median(rt), rateHi: quantile(rt, 1 - q) };
+    }
+    for (const t in stats) {
+      const f = fam(t); if (!f) continue;
+      const s = stats[t], R = refs[f];
+      const cls = s.n < minN || !R ? 'thin'
+        : s.supply <= R.supLo && s.attention >= R.attMed && s.lo > R.rateHi ? 'blue'
+        : s.supply >= R.supHi && s.attention < R.attMed && s.hi < R.rateMed ? 'red'
+        : s.supply >= R.supHi && s.lo > R.rateMed ? 'busy'
+        : s.supply <= R.supLo && s.attention < R.attMed ? 'quiet' : 'mixed';
+      out[t] = { ...s, tag: t, cls, fam: f, ref: R || null };
+    }
+    return out;
   }
   const bucketOf = (edges, v) => { if (v == null || Number.isNaN(v)) return -1; for (let j = 1; j < edges.length; j++) if (v > edges[j - 1] && v <= edges[j]) return j - 1; return -1; };
 
@@ -200,6 +230,42 @@ const GameDB = (() => {
       }
       return out;
     }
+    // ---- inputs of the shared ocean classification (issue 023) ----
+    let yPct = null;   // each game's review-count percentile among games released the same year: attention without the release-year effect
+    function yearPct() {
+      if (yPct) return yPct;
+      yPct = new Float32Array(n_); const by = {};
+      for (let r = 0; r < n_; r++) { const y = C.year[r]; if (y >= SCOPE[0] && y <= SCOPE[1]) (by[y] || (by[y] = [])).push(r); }
+      for (const y in by) {
+        const a = by[y].sort((p, q) => C.reviews[p] - C.reviews[q]);
+        for (let i = 0; i < a.length;) { let j = i; while (j + 1 < a.length && C.reviews[a[j + 1]] === C.reviews[a[i]]) j++;
+          const v = (i + j) / 2 / Math.max(1, a.length - 1); for (let k = i; k <= j; k++) yPct[a[k]] = v; i = j + 1; }
+      }
+      return yPct;
+    }
+    /** Per tag, games released within years: n, hits, absolute success rate with its 95% range (year-adjusted ratio x the
+        window's market rate, so tags with different year mixes compare fairly), supply = share of all new games in the
+        window's last three years, attention = median same-year review percentile of its games. */
+    function tagStats(def = 'hit', years = SCOPE, names = tagNames) {
+      const m = market(def), pct = yearPct(), s0 = Math.max(years[0], years[1] - 2);
+      let mn = 0, mh = 0, sn = 0;
+      for (let y = years[0]; y <= years[1]; y++) { mn += m.n[y] || 0; mh += (m.rate[y] || 0) * (m.n[y] || 0); if (y >= s0) sn += m.n[y] || 0; }
+      const base = mh / mn, out = {};
+      for (const t of names) {
+        const id = tagId.get(t); if (id == null || outcome.has(id)) continue;
+        const rows = withTags([t]), o = oe(rows, def, years); if (!o.n) continue;
+        const ps = []; let s = 0;
+        for (let i = 0; i < rows.length; i++) { const r = rows[i], y = C.year[r]; if (y < years[0] || y > years[1]) continue; ps.push(pct[r]); if (y >= s0) s++; }
+        out[t] = { n: o.n, hits: o.O, rate: o.ratio * base, lo: o.lo * base, hi: o.hi * base, supply: s / sn, attention: median(ps), base };
+      }
+      return out;
+    }
+    const ocCache = {};
+    /** The shared classification for a success definition, over the tags fam() judges (cached per definition). */
+    function oceans(def = 'hit', fam, opts) {
+      const key = def + JSON.stringify(opts || {});
+      return ocCache[key] || (ocCache[key] = classifyOceans(tagStats(def, opts && opts.years || SCOPE, tagNames.filter(t => fam(t))), fam, opts));
+    }
     /** Tags that co-occur with the lane, each with the year-adjusted success of lane + that tag.
         exclude: tag names already in the lane. Outcome tags are skipped (they follow success, not cause it). */
     function companions(rows, exclude = [], def = 'hit', minN = 30) {
@@ -236,7 +302,12 @@ const GameDB = (() => {
         rate += w * s; v += w * w * s * (1 - s) / (e.cn + k); n += e.cn; hits += e.ch;
       }
       const se = Math.sqrt(v);
-      return N ? { rate, lo: Math.max(0, rate - 1.96 * se), hi: Math.min(1, rate + 1.96 * se), se, n, hits } : { rate: null, lo: null, hi: null, se: null, n: 0, hits: 0 };
+      if (!N) return { rate: null, lo: null, hi: null, se: null, n: 0, hits: 0 };
+      let lo = Math.max(0, rate - 1.96 * se), hi = Math.min(1, rate + 1.96 * se);
+      // the normal interval collapses when every lane year is all-miss or all-hit; then use the exact (Clopper-Pearson) bound on the cohort's own count
+      if (n && hits === 0) hi = Math.max(hi, 1 - Math.pow(.025, 1 / n));
+      if (n && hits === n) lo = Math.min(lo, Math.pow(.025, 1 / n));
+      return { rate, lo, hi, se, n, hits };
     }
     /** Joint bootstrap of cohort() for several cohorts at once: games are resampled within release year, and every
         cohort (and every difference between them) is recomputed on the same resample, so shared lane-year priors are
@@ -356,9 +427,24 @@ const GameDB = (() => {
       hits.sort((a, b) => a[1] - b[1] || C.reviews[b[0]] - C.reviews[a[0]]);
       return hits.slice(0, k).map(([r]) => r);
     }
-    return { n, tags: tagNames, langs: raw.langs, feats: raw.feats, edges: EDGES, years: YEARS, shareYears: SHARE_YEARS, scope: SCOPE,
-      col: C, price, all, filter, withTags, where, rate, buckets, summarize, yshare, similar, search, market, oe, ratioCI, laneYears, companions, cohort, cohortBoot, interval, marketFor, prominence, recommend, tagSim, tagVec, bucketOf: (k, v) => bucketOf(EDGES[k], v), game, name, tagsOf, hit, ratio, playH, owners, inScope };
+    // store page and publishing (issue 007); older games.json files lack these columns, so they read as unknown
+    const pubType = r => C.pub ? C.pub[r] : 0, shots = r => C.shots ? C.shots[r] : null, earlyAccess = r => !!((C.flags[r] >> EA) & 1);
+    const storeCols = { pub: !!C.pub, shots: !!C.shots, ea: (raw.flags || []).includes('ea') };
+    /** Hidden gems of a tag (issue 008): released in `years`, review count in [lo, hi], 'safe' (not adult, has a store image), ranked by the Wilson
+        95% lower bound of the positive share, so 50 reviews at 100% does not automatically beat 400 at 97%. */
+    function gems(tag, { lo = 50, hi = 500, years = SCOPE, k = 8 } = {}) {
+      const z = 1.96, out = [];
+      for (const r of withTags([tag])) {
+        const n = C.reviews[r], y = C.year[r];
+        if (n < lo || n > hi || y < years[0] || y > years[1] || !((C.flags[r] >> SAFE) & 1)) continue;
+        const p = C.pos[r] / n, lb = (p + z * z / (2 * n) - z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / (1 + z * z / n);
+        out.push({ r, lb, p, n });
+      }
+      return out.sort((a, b) => b.lb - a.lb || b.n - a.n).slice(0, k);
+    }
+    return { pubType, shots, earlyAccess, storeCols, gems, n, tags: tagNames, langs: raw.langs, feats: raw.feats, edges: EDGES, years: YEARS, shareYears: SHARE_YEARS, scope: SCOPE,
+      col: C, price, all, filter, withTags, where, rate, buckets, summarize, yshare, similar, search, market, oe, ratioCI, laneYears, companions, cohort, cohortBoot, interval, marketFor, prominence, recommend, tagSim, tagVec, bucketOf: (k, v) => bucketOf(EDGES[k], v), game, name, tagsOf, hit, ratio, playH, owners, inScope, tagStats, oceans };
   }
-  return { open, median, quantile, bucketOf };
+  return { open, median, quantile, bucketOf, classifyOceans };
 })();
 if (typeof module === 'object' && module.exports) module.exports = GameDB;

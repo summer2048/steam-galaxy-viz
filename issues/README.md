@@ -71,11 +71,28 @@ NNN-简短英文描述.md
 | [003](003-growth-quadrant.md) | 供给和成功作品的增长象限 | done | P1 | viz |
 | [004](004-small-sample-intervals.md) | 小样本的置信区间 | done | P1 | data |
 | [005](005-prune-redundant-metrics.md) | 精简冗余指标 | done | P2 | data |
-| [006](006-consistent-year-scope.md) | 统一年份口径 | in-progress | P2 | data |
-| [007](007-developer-view.md) | 开发者视角补充 | open | P2 | data |
-| [008](008-hidden-gems.md) | 玩家遗珠列表 | open | P2 | data |
+| [006](006-consistent-year-scope.md) | 统一年份口径 | done | P2 | data |
+| [007](007-developer-view.md) | 开发者视角补充 | done | P2 | data |
+| [008](008-hidden-gems.md) | 玩家遗珠列表 | done | P2 | data |
 | [009](009-i18n-cleanup-and-csv.md) | 清理 i18n 死条目，导出标签指标 CSV | done | P3 | docs |
-| [010](010-rerun-pipeline.md) | 重跑管线，验证 export.py 的改动 | open | P2 | data |
-| [011](011-badge-thresholds.md) | 徽章和分级的硬阈值 | open | P3 | viz |
+| [010](010-rerun-pipeline.md) | 重跑管线，验证 export.py 的改动 | done | P2 | data |
+| [011](011-badge-thresholds.md) | 徽章和分级的硬阈值 | done | P3 | viz |
 | [012](012-plain-wording-and-axis-titles.md) | 成功率两种算法的叫法看不懂；坐标轴标题经常不显示 | done | P1 | ux |
 | [013](013-studio-vs-pruned-export.md) | 重跑管线会让 Studio 的数据导出失败 | done | P1 | data |
+| [014](014-usability-walkthrough.md) | 可用性走查：三个任务的模拟测试（非真人） | done | P1 | ux |
+| [015](015-role-entries-on-first-screen.md) | 首屏就给出两个角色入口，跳过开场也不越过它们 | done | P1 | ux |
+| [016](016-crowding-chart-reading.md) | “是否变挤”图里份额上升、优势下降，容易读反 | done | P1 | ux |
+| [017](017-plan-lane-heading.md) | 比较方案页要先说清楚比的是哪条赛道 | done | P2 | ux |
+| [018](018-rating-dimension-wording.md) | “口碑不低于我的游戏”像硬筛选，和推荐结果矛盾 | done | P1 | ux |
+| [019](019-unknown-tags-in-links.md) | 链接里的未知标签被当成组合，0 款还给出拥挤判断 | done | P2 | bug |
+| [020](020-plan-suggestion-association.md) | 方案建议要在建议句里说明是相关关系 | done | P2 | ux |
+| [021](021-lane-map-labels.md) | “再加一个标签”散点图里重要的点没有名字 | done | P3 | viz |
+| [022](022-map-panel-first-screen.md) | 主图侧栏首屏只回答当前选择引出的一个问题 | done | P2 | ux |
+| [023](023-blue-red-ocean-rule.md) | 统一“蓝海候选 / 红海风险 / 证据不足”的判定 | done | P1 | data |
+| [024](024-watchlist-into-roles.md) | 把星图上关注的游戏和标签带入角色分析 | done | P2 | ux |
+| [025](025-align-role-buttons.md) | 对齐进入分析界面的两组角色按钮 | done | P2 | ux |
+| [026](026-intro-with-covers.md) | 用游戏封面和标签关系重做开场动画 | done | P3 | viz |
+| [027](027-plan-share-link.md) | 比较方案的价格和语言档写进分享链接 | done | P2 | bug |
+| [028](028-phone-360.md) | 360 px 手机宽度：赛道表格溢出，图表文字太小 | done | P1 | ux |
+| [029](029-load-time.md) | 加载和计算时间实测 | done | P2 | data |
+| [030](030-phone-map-legend.md) | 手机上的星图：图例逐字换行，语言按钮被拉长 | done | P2 | ux |
