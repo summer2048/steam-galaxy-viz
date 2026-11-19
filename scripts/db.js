@@ -423,7 +423,7 @@ const GameDB = (() => {
     function search(text, k = 8) {
       const q = text.trim().toLowerCase(); if (!q) return [];
       const hits = [];
-      for (let r = 0; r < n; r++) { const s = name(r).toLowerCase(), at = s.indexOf(q); if (at >= 0) hits.push([r, at === 0 ? 0 : 1]); }
+      for (let r = 0; r < n; r++) { const s = name(r).toLowerCase(), at = s.indexOf(q); if (at >= 0) hits.push([r, s === q ? 0 : at === 0 ? 1 : 2]); }   // the exact title, then prefixes, then the rest
       hits.sort((a, b) => a[1] - b[1] || C.reviews[b[0]] - C.reviews[a[0]]);
       return hits.slice(0, k).map(([r]) => r);
     }

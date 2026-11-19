@@ -81,8 +81,8 @@ const Studio = (() => {
     root.addEventListener('scroll', hideTip, { passive: true });
     // charts are laid out for the width they were drawn at, so any real width change redraws them (narrowing 500 → 360 too)
     let lastW = innerWidth, rt = 0;
-    addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (Math.abs(innerWidth - lastW) < 24) return; lastW = innerWidth; if (S.open) render(); }, 150); });
-    root.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.target.closest('input')) close(); });
+    addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (Math.abs(innerWidth - lastW) < 24) return; lastW = innerWidth; if (S.open) rerenderKeepingInput(); }, 150); });
+    root.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.target.closest('input')) { e.stopPropagation(); close(); } });   // one Esc: back to the map, selection intact
   }
   function open(opts = {}) {
     if (!root) build();
@@ -99,7 +99,7 @@ const Studio = (() => {
     if (typeof opts.dims === 'string' && /^(-|[tprg]+)$/.test(opts.dims)) for (const [c, k] of Object.entries(DIM_KEYS)) S.dims[k] = opts.dims.includes(c);
     if ('ptag' in opts) S.ptag = opts.ptag && DB_TAG_OK(opts.ptag) ? opts.ptag : null;
     const explicit = opts.combo || opts.add || opts.seedAppids || opts.seedCover != null || 'ptag' in opts;
-    const go = () => { if (!explicit) watchDefaults(); if (S.mode === 'dev') fixCombo(); if (opts.seedAppids) S.seeds = opts.seedAppids.map(rowOfAppid).filter(r => r != null); if (opts.seedCover != null) { const r = rowOfCover(opts.seedCover); S.seeds = r == null ? [] : [r]; } if (explicit) snapAuto(); S.pick = null; render(); };
+    const go = () => { if (!explicit) watchDefaults(); if (S.mode === 'dev') fixCombo(); if (opts.seedAppids) S.seeds = opts.seedAppids.map(rowOfAppid).filter(r => r != null); if (opts.seedCover != null) { const r = rowOfCover(opts.seedCover); S.seeds = r == null ? [] : [r]; } if (explicit) { if (S.mode === 'dev') autoDev = 'link'; else autoPlayer = 'link'; } /* a link's choice is never replaced by the watchlist */ S.pick = null; render(); };
     if (!DB) { $('stBody').innerHTML = `<div class="st-loading">${tx('正在载入 83,353 款游戏…', 'Loading 83,353 games…')}</div>`; setTimeout(() => { db(); if (S.open) go(); }, 30); }
     else go();
     root.focus && root.setAttribute('tabindex', '-1'); root.focus();
@@ -135,6 +135,14 @@ const Studio = (() => {
       autoPlayer = JSON.stringify([S.seeds, S.ptag]);
     }
   }
+  // a rotation redraws everything; the game search box keeps what was typed, the caret and focus
+  function rerenderKeepingInput() {
+    const q = $('stQ'), v = q ? q.value : '', had = !!q && document.activeElement === q, at = q ? q.selectionStart : 0;
+    render();
+    const q2 = $('stQ'); if (!q2 || !v) return;
+    q2.value = v; q2.dispatchEvent(new Event('input'));
+    if (had) { q2.focus({ preventScroll: true }); try { q2.setSelectionRange(at, at); } catch (e) {} }
+  }
   function close() {
     S.open = false; document.body.classList.remove('studio-open'); hideTip();
     if (location.hash.startsWith('#studio')) history.replaceState(null, '', location.pathname + location.search);
@@ -165,8 +173,8 @@ const Studio = (() => {
     const g = DB.game(r), lane = S.combo.length ? DB.withTags(S.combo) : null, k = def();
     const inLane = !!lane && Array.prototype.includes.call(lane, r), miss = S.combo.filter(t => !g.tags.includes(t));
     let rank = '';
-    if (inLane) { const peers = Array.prototype.filter.call(lane, x => DB.col.year[x] === g.y), below = peers.filter(x => DB.col.reviews[x] < g.rv).length;
-      rank = tx(`，在同年 ${fmt(peers.length)} 款同赛道游戏里评价数超过 ${pc(below / peers.length, 0)}`, `, more reviews than ${pc(below / peers.length, 0)} of the ${fmt(peers.length)} same-year games in this lane`); }
+    if (inLane) { const peers = Array.prototype.filter.call(lane, x => DB.col.year[x] === g.y), above = peers.filter(x => DB.col.reviews[x] > g.rv).length, tie = peers.filter(x => DB.col.reviews[x] === g.rv).length > 1, k1 = above + 1;
+      rank = tx(`，评价数在同年同赛道 ${fmt(peers.length)} 款里排第 ${fmt(k1)}${tie ? '（并列）' : ''}`, `, #${fmt(k1)}${tie ? ' (tied)' : ''} by reviews of the ${fmt(peers.length)} same-year games in this lane`); }
     const ok = g[k] ? tx('达到当前成功标准', 'meets the current success bar') : tx('未达到当前成功标准', 'below the current success bar');
     return `<div class="st-bench"><b>${esc(g.n)}</b> · ${g.y} · ${fmt(g.rv)} ${tx('条评价', 'reviews')}${rank} · ${pc(g.p, 0)} ${tx('好评', 'positive')} · ${g.c ? money(g.c) : w('免费')} · ${g.nl} ${tx('种语言', 'languages')} · ${ok}${tx('。', '.')}
       ${!S.combo.length ? tx('先选一条赛道，才能和同赛道游戏比较；也可以直接点下面它的标签。', 'Pick a lane to compare it with games in that lane, or start from one of its tags below.') : inLane ? '' : tx(`它不在当前赛道（缺少 ${miss.map(esc).join('、')}）。`, `It is not in this lane (missing ${miss.map(esc).join(', ')}).`)}
@@ -336,8 +344,8 @@ const Studio = (() => {
           <div class="st-tabs" role="tablist">${S.plans.map((p, i) => `<button type="button" role="tab" data-plan="${i}" class="${i === S.active ? 'on' : ''}" style="--pc:${PLAN_COL[i]}"><i></i>${tx('方案', 'Plan')} ${p.name}<small>${est[i].n ? pc(est[i].rate, 0) : '—'}</small></button>`).join('')}
             ${S.plans.length < 3 ? `<button type="button" data-plan="new" class="new">+ ${tx('新方案', 'New')}</button>` : `<button type="button" data-plan="del" class="new" title="${tx('删除当前方案', 'Delete this plan')}">− ${tx('删除', 'Delete')}</button>`}</div>
           <div class="st-f"><div class="st-fl">${tx('赛道', 'Lane')}</div><div class="st-lane">${S.combo.map(t => `<span class="st-chip" style="--fc:${tagColor(t)}">${esc(t)}</span>`).join('')}<button type="button" class="st-link" data-go="lane">${tx('修改', 'Change')}</button></div></div>
-          <div class="st-f"><div class="st-fl">${tx('价格', 'Price')}</div><div class="st-pills">${PRICE_T().map((t, j) => `<button type="button" data-price="${j}" class="${pl.price === j ? 'on' : ''}">${t}</button>`).join('')}</div></div>
-          <div class="st-f"><div class="st-fl">${tx('支持几种语言', 'How many languages')}</div><div class="st-pills col">${LANG_T().map((t, j) => `<button type="button" data-lt="${j}" class="${pl.lt === j ? 'on' : ''}">${t}<small>${LANG_EX()[j]}</small></button>`).join('')}</div></div>
+          <div class="st-f"><div class="st-fl">${tx('价格', 'Price')}</div><div class="st-pills">${PRICE_T().map((t, j) => `<button type="button" data-price="${j}" class="${pl.price === j ? 'on' : ''}" aria-pressed="${pl.price === j}">${t}</button>`).join('')}</div></div>
+          <div class="st-f"><div class="st-fl">${tx('支持几种语言', 'How many languages')}</div><div class="st-pills col">${LANG_T().map((t, j) => `<button type="button" data-lt="${j}" class="${pl.lt === j ? 'on' : ''}" aria-pressed="${pl.lt === j}">${t}<small>${LANG_EX()[j]}</small></button>`).join('')}</div></div>
           <p class="st-note">${tx('只比较价格档和语言数：具体哪几种语言、游戏时长、发售年份都不参与计算。只有约 20% 的游戏有时长数据，而且这些游戏的成功率远高于平均（46% 对约 1%）；未来年份没有数据。', 'Only price tier and number of languages are compared. Which languages, playtime and launch year are left out: only about 20% of games have playtime data, and those are far more successful than average (46% vs about 1%), and future years have no data.')}</p>
         </aside>
         <div class="st-main">
@@ -360,8 +368,9 @@ const Studio = (() => {
       const t = e.target.closest('[data-plan],[data-price],[data-lt],[data-go],[data-preset]'); if (!t) return;
       if (t.dataset.go) { S.view = t.dataset.go; render(); return; }
       if (t.dataset.preset) { S.combo = t.dataset.preset.split('|'); render(); return; }
-      if (t.dataset.price != null) { pl.price = +t.dataset.price; renderPlan(); return; }
-      if (t.dataset.lt != null) { pl.lt = +t.dataset.lt; renderPlan(); return; }
+      const refocus = sel => { const b = document.querySelector(sel); if (b) b.focus({ preventScroll: true }); };   // keyboard users stay on the pill they chose
+      if (t.dataset.price != null) { pl.price = +t.dataset.price; renderPlan(); refocus(`[data-price="${pl.price}"]`); return; }
+      if (t.dataset.lt != null) { pl.lt = +t.dataset.lt; renderPlan(); refocus(`[data-lt="${pl.lt}"]`); return; }
       const v = t.dataset.plan;
       if (v === 'new') { S.plans.push({ ...pl, name: 'ABC'[S.plans.length] }); S.active = S.plans.length - 1; }
       else if (v === 'del') { S.plans.splice(S.active, 1); S.plans.forEach((p, i) => p.name = 'ABC'[i]); S.active = Math.min(S.active, S.plans.length - 1); }
@@ -447,6 +456,7 @@ const Studio = (() => {
 
   // ---------- player: find a game to play ----------
   S.seeds = []; S.dims = { tags: true, price: false, rating: true, gems: false }; S.pick = null; S.ptag = null;
+  const NEEDS_SEED = new Set(['tags', 'price']);   // with no game entered there is nothing to be similar to; ranking falls back to rating
   const DIMS = () => [
     ['tags', tx('玩法相近', 'Similar gameplay'), tx('标签重合，越少见、越靠前的标签越重要', 'shared tags; rarer and more defining tags count more')],
     ['rating', tx('口碑接近或更好', 'Rated about as well or better'), tx('口碑排名（好评率按评价数修正后）不低于你的游戏就得满分，低得越多扣得越多', 'full marks when its rating rank (positive share adjusted for review count) is at or above your games’, less the further below')],
@@ -478,7 +488,7 @@ const Studio = (() => {
           ${watchedSeeds()}
           ${S.seeds.length ? '' : `<div class="st-presets">${tx('例如：', 'For example:')} <button type="button" data-example="1">Slay the Spire + Hades + Stardew Valley</button></div>`}</div>
         <div class="st-pcol"><h3><i class="st-n">2</i>${tx('比较时你在意什么？', 'What matters to you?')}</h3>
-          <div class="st-dims">${DIMS().map(([k, t, d]) => `<button type="button" data-dim="${k}" class="${S.dims[k] ? 'on' : ''}" aria-pressed="${!!S.dims[k]}"><b>${t}</b><small>${d}</small></button>`).join('')}</div></div>
+          <div class="st-dims">${DIMS().map(([k, t, d]) => { const off = !S.seeds.length && NEEDS_SEED.has(k); return `<button type="button" data-dim="${k}" class="${S.dims[k] && !off ? 'on' : ''}" aria-pressed="${!!S.dims[k] && !off}"${off ? ' disabled' : ''}><b>${t}</b><small>${off ? tx('先加一款你玩过的游戏', 'add a game you played first') : d}</small></button>`; }).join('')}</div></div>
       </section>
       ${!S.seeds.length && !S.ptag ? `<div class="st-empty">${tx('先加至少一款你玩过的游戏。三款效果最好。', 'Add at least one game you have played. Three works best.')}</div>`
         : !recs.length ? `<div class="st-empty">${S.ptag && !Object.values(S.dims).some(Boolean) || !S.ptag ? tx('至少选一个比较维度。', 'Pick at least one thing that matters.') : tx('这个类别里没有符合条件的游戏。', 'No game in this tag qualifies.')}</div>` : `

@@ -4,6 +4,8 @@
 // collect reviews, so absolute rates fall with release year; the check therefore compares each tag with its family in the
 // same later window (above / below the family median), not with its own earlier rate. Also reports how many tags change
 // class when the window moves one year or the quartile cut changes.
+// Both windows read today's snapshot (review counts are cumulative to 2026), so this compares two release cohorts. It does
+// not show that the classes could have been picked at the end of 2020; that needs review counts as of each year's end.
 const fs = require('fs'), path = require('path'), GameDB = require('./db.js');
 const root = path.join(__dirname, '..');
 const [gamesPath, dashPath, famPath] = [2, 3, 4].map((i, j) => process.argv[i] || path.join(root, ['data/games.json', 'data/dash_offline.json', 'tag_families.csv'][j]));
